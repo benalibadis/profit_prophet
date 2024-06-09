@@ -1,7 +1,6 @@
 #[tokio::main]
 async fn main() {
-    use profit_prophet::connector::http::{HttpClient, HttpClientError};
-    use reqwest::Method;
+    use connector::http::{HttpClient, HttpClientError};
     use serde::Deserialize;
     use std::collections::HashMap;
     use std::time::Duration;
@@ -45,7 +44,7 @@ async fn main() {
 
     match client
         .request::<EchoResponse, _>(
-            Method::GET,
+            "GET",
             "https://echo.free.beeceptor.com",
             None::<&()>,
             Some(headers.clone()),
@@ -65,12 +64,15 @@ async fn main() {
             HttpClientError::TimeoutError(timeout_error) => {
                 eprintln!("Timeout error: {:?}", timeout_error);
             }
+            HttpClientError::InvalidMethodError(method_error) => {
+                eprintln!("Invalid method error: {:?}", method_error);
+            }
         },
     }
 
     match client
         .request::<EchoResponse, _>(
-            Method::POST,
+            "POST",
             "https://echo.free.beeceptor.com",
             Some(&post_body),
             Some(headers),
@@ -89,6 +91,9 @@ async fn main() {
             }
             HttpClientError::TimeoutError(timeout_error) => {
                 eprintln!("Timeout error: {:?}", timeout_error);
+            }
+            HttpClientError::InvalidMethodError(method_error) => {
+                eprintln!("Invalid method error: {:?}", method_error);
             }
         },
     }

@@ -13,6 +13,8 @@ pub enum HttpClientError {
     TimeoutError(#[from] tokio::time::error::Elapsed),
     #[error("Failed to deserialize response: {0}")]
     DeserializeError(String),
+    #[error("Invalid HTTP method: {0}")]
+    InvalidMethodError(String),
 }
 
 #[derive(Clone)]
@@ -29,13 +31,16 @@ impl HttpClient {
 
     pub async fn request<T: DeserializeOwned, U: Serialize>(
         &self,
-        method: Method,
+        method: &str,
         url: &str,
         body: Option<&U>,
         headers: Option<HashMap<String, String>>,
         query_params: Option<HashMap<String, String>>,
         timeout_duration: Option<Duration>,
     ) -> Result<T, HttpClientError> {
+        
+        let method: Method = method.parse().map_err(|_| HttpClientError::InvalidMethodError(method.to_string()))?;
+        
         let mut request_builder = self.client.request(method.clone(), url);
 
         if let Some(h) = headers {

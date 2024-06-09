@@ -1,0 +1,17 @@
+[package]
+name = "pump_fun"
+version = "0.0.0"
+edition = "2021"
+
+[[bin]]
+name = "pump_fun"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+connector = { path = "../connector" }
+data_source = { path = "../data_source" }
+data_sink = { path = "../data_sink" }
