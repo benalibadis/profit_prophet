@@ -64,3 +64,9 @@ impl HttpClient {
         serde_json::from_str::<T>(&response_text).map_err(|_| HttpClientError::DeserializeError(response_text))
     }
 }
+
+impl Default for HttpClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
