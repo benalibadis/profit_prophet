@@ -1,7 +1,6 @@
 #[cfg(test)]
     mod tests {
-        use profit_prophet::connector::http::{HttpClient, HttpClientError};
-        use reqwest::Method;
+        use connector::http::{HttpClient, HttpClientError};
         use mockito::{mock, Matcher};
         use serde::{Deserialize, Serialize};
 
@@ -23,7 +22,7 @@
             let full_url = format!("{}/test", url);
 
             let response: TestResponse = client
-                .request(Method::GET, &full_url, None::<&()>, None, None, None)
+                .request("GET", &full_url, None::<&()>, None, None, None)
                 .await
                 .unwrap();
 
@@ -56,7 +55,7 @@
             };
 
             let response: TestResponse = client
-                .request(Method::POST, &full_url, Some(&post_body), None, None, None)
+                .request("POST", &full_url, Some(&post_body), None, None, None)
                 .await
                 .unwrap();
 
@@ -76,7 +75,7 @@
             let full_url = format!("{}/test", url);
 
             let result: Result<TestResponse, HttpClientError> = client
-                .request(Method::GET, &full_url, None::<&()>, None, None, None)
+                .request("GET", &full_url, None::<&()>, None, None, None)
                 .await;
 
             assert!(matches!(result, Err(HttpClientError::DeserializeError(_))));

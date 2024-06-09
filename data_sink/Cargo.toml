@@ -1,0 +1,11 @@
+[package]
+name = "data_sink"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+name = "data_sink"
+path = "src/lib.rs"
+
+[dependencies]
+connector = { path = "../connector" }
