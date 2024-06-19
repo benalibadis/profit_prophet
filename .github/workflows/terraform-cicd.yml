@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      API_AUTHENTIFICATION: ${{ secrets.API_AUTHENTIFICATION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      TF_VARS_API_AUTHENTIFICATION: ${{ secrets.TF_VARS_API_AUTHENTIFICATION }}
+      TFSTATE_AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      TFSTATE_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TFSTATE_AWS_REGION: ${{ secrets.AWS_REGION }}
       TFSTATE_BUCKET: ${{ secrets.TFSTATE_BUCKET }}
       TFSTATE_PATH: ${{ secrets.TFSTATE_PATH }}
 
@@ -25,7 +25,7 @@ jobs:
       uses: hashicorp/setup-terraform@v2
 
     - name: Terraform Init
-      run: terraform init -backend-config="bucket=${TFSTATE_BUCKET}" -backend-config="key=${TFSTATE_PATH}" -backend-config="region=${AWS_REGION}" -backend-config="access_key=${AWS_ACCESS_KEY_ID}" -backend-config="secret_key=${AWS_SECRET_ACCESS_KEY}"
+      run: terraform init -backend-config="bucket=${TFSTATE_BUCKET}" -backend-config="key=${TFSTATE_PATH}" -backend-config="region=${TFSTATE_AWS_REGION}" -backend-config="access_key=${TFSTATE_AWS_ACCESS_KEY_ID}" -backend-config="secret_key=${TFSTATE_AWS_SECRET_ACCESS_KEY}"
 
     - name: Validate Terraform
       working-directory: ./terraform
