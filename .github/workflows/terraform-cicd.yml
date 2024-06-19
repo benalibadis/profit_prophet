@@ -1,0 +1,41 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    paths:
+      - 'terraform/**'
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    env:
+      API_AUTHENTIFICATION: ${{ secrets.API_AUTHENTIFICATION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      TFSTATE_BUCKET: ${{ secrets.TFSTATE_BUCKET }}
+      TFSTATE_PATH: ${{ secrets.TFSTATE_PATH }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      run: terraform init -backend-config="bucket=${TFSTATE_BUCKET}" -backend-config="key=${TFSTATE_PATH}" -backend-config="region=${AWS_REGION}" -backend-config="access_key=${AWS_ACCESS_KEY_ID}" -backend-config="secret_key=${AWS_SECRET_ACCESS_KEY}"
+
+    - name: Validate Terraform
+      working-directory: ./terraform
+      run: terraform validate
+
+    - name: Plan Terraform
+      working-directory: ./terraform
+      run: terraform plan
+
+    - name: Apply Terraform
+      if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+      working-directory: ./terraform
+      run: terraform apply -auto-approve
