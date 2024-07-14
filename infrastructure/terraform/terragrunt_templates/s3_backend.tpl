@@ -1,4 +1,3 @@
-
 terraform {
   backend "s3" {
     access_key  = "${access_key}"

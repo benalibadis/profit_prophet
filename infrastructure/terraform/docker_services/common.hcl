@@ -15,8 +15,8 @@ generate "private_key" {
     disable_signature = true
 }
 
-generate "provider" {
-    path        = "provider.tf"
+generate "docker_provider" {
+    path        = "docker_provider_override.tf"
     if_exists   = "overwrite"
     contents    = templatefile("${get_terragrunt_dir()}/../../terragrunt_templates/docker_ssh_provider.tpl", {
         docker_server    = dependency.docker_server.outputs.ip

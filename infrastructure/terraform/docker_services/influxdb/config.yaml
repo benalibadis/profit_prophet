@@ -7,18 +7,32 @@ service:
           external: 8086
     environment:
         - name: DOCKER_INFLUXDB_INIT_MODE
-          value: ENC[AES256_GCM,data:n3Tu9vU=,iv:FdligIFMoIkYq9YFufk1h34XpGWsVeZNH7AlaJ6iBS0=,tag:XVMY9BuZ99tj2nJYehz71Q==,type:str]
+          value: ENC[AES256_GCM,data:fqM1smE=,iv:ZPzwl0z/PfBJ3QOd5ov0q6ds7L7k7okUXeI5yVgkPNo=,tag:aGUj+vfGy6QtFxdimyB4bg==,type:str]
         - name: DOCKER_INFLUXDB_INIT_USERNAME
-          value: ENC[AES256_GCM,data:hFl/1Ra20A1k,iv:Pn731ONccRtrWXwYP93jD4NwrIYYEDZRjExTFNVwhrI=,tag:4PEFHgba0BuGl9kFZMwuAw==,type:str]
+          value: ENC[AES256_GCM,data:0CPyRB7D0xEc,iv:fLAbw58BEIxYhPbBwhZpx/VImz7982YJjG86X5+5riA=,tag:W9u0t173QVrWwUnmWLGWAw==,type:str]
         - name: DOCKER_INFLUXDB_INIT_PASSWORD
-          value: ENC[AES256_GCM,data:27YLRCBRtFpYk9Lrj2Mt7/8P9XiZYo18afIj6cGS+GfgDlNEWKcrNw==,iv:QRcw4+WaIYeLiOOEEEXVGDatwXqAYaSLb7z54jXesT4=,tag:NXL5L/PJgmRhmEaD2ALWFw==,type:str]
+          value: ENC[AES256_GCM,data:KubKes/WS+7CoEjKKg2tRMrL+/Sl3i089HdU2cRW7G+UyGwxTgaFNw==,iv:Ru6ociDTccygJoWDmiCD9xdPe9anK+fEErbAMoqvYnI=,tag:DoLxqbqffIC6Nst9Oao+2w==,type:str]
         - name: DOCKER_INFLUXDB_INIT_ORG
-          value: ENC[AES256_GCM,data:xirG7ROZsyJXOS4=,iv:PqyirTWuo9NdNe8T8YM8j7Qh4FaUyHWKXTPHnegPonc=,tag:TN6G76KbRcDYTwb9k6R+3Q==,type:str]
+          value: ENC[AES256_GCM,data:2OgKWVsmLyYj5eU=,iv:TmIvALHs8vwvUGMkd/H7ByyblJLGGyidTz8sA3+GCtg=,tag:j86qLg7IdAGvO8LqakL6YA==,type:str]
         - name: DOCKER_INFLUXDB_INIT_BUCKET
-          value: ENC[AES256_GCM,data:L1JAzhi9TG6oOXgAOAs=,iv:wWY5g6afgpPme57nJPEdjGBDj6pyMFjm0nOyuInCd4c=,tag:vhZo9eFfDUUFOcCbLxk64w==,type:str]
+          value: ENC[AES256_GCM,data:ta61s7GJp192WUz9sQ4=,iv:c6E3W27W9ZMks4UOdGdjukJiHR8o7L3HaWNE89Ngqzo=,tag:4Rtk4rYEQ+LxLl5Jz7tK6w==,type:str]
     volumes:
         - container_path: /var/lib/influxdb
           host_path: /opt/influxdb/volumes
+influxdb:
+    configuration_api:
+        port: 8086
+        username: ENC[AES256_GCM,data:PdMlDJAkqCc1,iv:WW1kFJKppT7uemokHhkcQHKEilOAoElY73R82kC7b4k=,tag:/8whsqrFhc6SXsIN9lkhDQ==,type:str]
+        password: ENC[AES256_GCM,data:gu03obikiopY9i+tMt8w+ss8Vq/Z55AAoq98gNuF9imhAikl2nfpsw==,iv:BHfUScUg8seiLSV7xf1OkL+cvHz+oHN11hBhfhHylLg=,tag:S8D1ug0x5ngHfMRQBljMhQ==,type:str]
+    databases:
+        - name: test
+    users:
+        - username: ENC[AES256_GCM,data:PAnS/sCftg==,iv:a5bmMs1reEmviRxk7aoLjCkJbe2NxZqI+rj36VBxeh4=,tag:gmozANro77MjY6AcUWsJtQ==,type:str]
+          password: ENC[AES256_GCM,data:37R4a0XLqQw=,iv:MsbTpRWRMHVbNBNyPS49XH+gaokrepu7mPOLYWAxOZw=,tag:at142tojvVDjplgFWtUUSA==,type:str]
+          is_admin: true
+          grants:
+            - database: test
+              privilege: all
 sops:
     kms: []
     gcp_kms: []
@@ -28,14 +42,14 @@ sops:
         - recipient: age1n8rfgalwtjpujyvhweydjh2wnnxyfext87lah4x4mxnyee6ygecsqncvvk
           enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBYL3pxRWlQSGwrNDZPemVv
-            R0FjYzhMSzJESUZLN3BtRkRUVHQrekk4TlNJCjY1cENBSFJOeUpqelA1WHZBcjli
-            Vzl1WnFneWdnZnpOMXlUV1E5d1ZxRFEKLS0tIDI2cDY3MnlLMzBXRWxpaDlUZzZC
-            SGlwMEhZQmMzNFYrcDJJVXFIM05yV2cKqj0HhInwrOnmJ2xkA+Y6QSGbNgbsvZXK
-            YwNf/iB8azjZinAxVe72rQzw7oCJXNmQ9PABrW4e8yYSol8g3UFznA==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBtTzFMS0tzM2ZIVFlWNEpL
+            MGpDSk5xZ1crUi9KMmRIRWd4YTBIcWttWHlRCnVaLzJtSnM4VStGa2Y0N05JZXJB
+            d3ZYaytyT3RHcWMwazliMFMrRDB4KzAKLS0tICs0WWp0U3Q0TnVQNWpSWm9qREdG
+            OFR1ak9JdGsyT1RhNHBWNHp5cVBTbVkKPQV2VVujNm13/jcdGFb7NRluuZ8pj57w
+            QBobJtEK0tNqKa1bSCEfAQD41RBlD2QyyeMhgWzPlxB3DKzbFi13dw==
             -----END AGE ENCRYPTED FILE-----
-    lastmodified: "2024-07-13T19:43:14Z"
-    mac: ENC[AES256_GCM,data:WXOaB47EF5MHKM3OmNpGNl3xuBn2DGw6t3h2wj654oAt0+R5g3Oqdob424p9NYI1Ax6QBfAYnoirgL+rjBmAnilQNOjaeUXsHfGyEnqBdqzYxD3XZFeeumLdYMtZgC5u6dblVV2K8YC77fELvh0Xl46Q/wdCETDgoMCURsuH7w4=,iv:xjsbCQgAbXI8yxbDDZRkcHF90rhplBmb5j5sAN3SbgU=,tag:E01hdJajQjH7OjcifqFBEg==,type:str]
+    lastmodified: "2024-07-14T13:00:07Z"
+    mac: ENC[AES256_GCM,data:p918aUrrnVcDJEo22319/1V+++zn9K+oPB71Zv8pX3XhBxBnFwEmNY1T0xyp+tADAIYE8MqgCkeYsjtomHuzEKrtGH0vC9n5A5586MbKJ0ITFel4H/kWap6l2tItMPos7aOvU9MzFr8WFszefLOhfqa7/HK0l/oLBdkpxVqypdY=,iv:XGOR/7p5MP8ekW6Ny81z1XEYR87F7W6g+LXBh6zKo1E=,tag:SP/Q+KA8qvWfgj21LdLStw==,type:str]
     pgp: []
-    encrypted_regex: ^(value)$
+    encrypted_regex: ^(value|username|password)$
     version: 3.9.0
