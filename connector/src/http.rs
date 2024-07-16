@@ -14,6 +14,8 @@ pub enum HttpClientError {
     DeserializeError(String),
     #[error("Invalid HTTP method: {0}")]
     InvalidMethodError(String),
+    #[error("HTTP error: {0}")]
+    HttpError(String),
 }
 
 #[derive(Clone, Debug)]
@@ -87,6 +89,11 @@ impl HttpClient {
         let response = self.client.execute(request).await;
         match response {
             Ok(resp) => {
+                let status = resp.status();
+                if !status.is_success() {
+                    return Err(HttpClientError::HttpError(format!("HTTP error: {}", status)));
+                }
+
                 let response_text = resp.text().await.map_err(HttpClientError::RequestError)?;
                 if response_text.is_empty() {
                     Ok(None)
