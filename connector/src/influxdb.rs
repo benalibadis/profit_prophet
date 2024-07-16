@@ -11,7 +11,7 @@ pub enum InfluxDbClientError {
     #[error("Serialization error: {0}")]
     SerializationError(#[from] serde_json::Error),
     #[error("Unsupported tag or field value type")]
-    UnsupportedValueType,
+    UnsupportedValueType(String),
     #[error("Time error: {0}")]
     TimeError(#[from] std::time::SystemTimeError),
 }
@@ -83,7 +83,7 @@ impl<T: Serialize, F: Serialize> InfluxDbDataPoint<T, F> {
                 serde_json::Value::String(s) => format!("{k}=\"{s}\"").to_string(),
                 serde_json::Value::Number(n) => format!("{}={}", k, n),
                 serde_json::Value::Bool(b) => format!("{}={}", k, b),
-                _ => return Err(InfluxDbClientError::UnsupportedValueType),
+                unspported_value => return Err(InfluxDbClientError::UnsupportedValueType(format!("Unsupported tag value: {}", unspported_value))),
             };
             line.push_str(&format!(",{}", tag_value));
         }
@@ -95,7 +95,7 @@ impl<T: Serialize, F: Serialize> InfluxDbDataPoint<T, F> {
                 serde_json::Value::String(s) => format!("{}=\"{}\"", k, s),
                 serde_json::Value::Number(n) => format!("{}={}", k, n),
                 serde_json::Value::Bool(b) => format!("{}={}", k, b),
-                _ => return Err(InfluxDbClientError::UnsupportedValueType),
+                unspported_value => return Err(InfluxDbClientError::UnsupportedValueType(format!("Unsupported field value: {}", unspported_value))),
             };
 
             if first_field {

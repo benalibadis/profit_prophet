@@ -74,13 +74,15 @@ mod tests {
         let result = client
             .write_data("test_org", "test_bucket", data_point)
             .await;
-        
         assert!(result.is_err());
-        
+        if let InfluxDbClientError::HttpClientError(_) = result.unwrap_err() {
+        } else {
+            panic!("Expected HttpClientError");
+        }
     }
 
     #[tokio::test]
-    async fn test_write_data_serialization_error() {
+    async fn test_write_data_unspported_value_error() {
         let client = InfluxDbClient::new(&server_url(), "my-token");
 
         // Create a data point with an unsupported tag value type to trigger serialization error
@@ -96,8 +98,12 @@ mod tests {
         let result = client
             .write_data("test_org", "test_bucket", data_point)
             .await;
-        println!("HERE = {:?}", result);
+
         assert!(result.is_err());
-        
+        println!("HERE => {:?}", result);
+        if let InfluxDbClientError::UnsupportedValueType(_) = result.unwrap_err() {
+        } else {
+            panic!("Expected UnsupportedValueType");
+        }
     }
 }
