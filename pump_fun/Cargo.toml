@@ -11,7 +11,9 @@ path = "src/main.rs"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+env_logger = "0.11.3"
 
 connector = { path = "../connector" }
 data_source = { path = "../data_source" }
 data_sink = { path = "../data_sink" }
+thiserror = "1.0"

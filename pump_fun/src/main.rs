@@ -1,100 +1,40 @@
+use std::time::{SystemTime};
+use serde::{Serialize};
+use connector::influxdb::{InfluxDbClient, InfluxDbDataPoint};
+
 #[tokio::main]
 async fn main() {
-    use connector::http::{HttpClient, HttpClientError};
-    use serde::Deserialize;
-    use std::collections::HashMap;
-    use std::time::Duration;
+    let influxdb_url = "http://localhost:8086";
+    let org = "arslanelabs";
+    let token = "KAtopm-k4IVJUagoQm_obwIZF1WyRfSTzlHIGVkBc91otqztpOjkLnbAu8WJ9H7hVZjiOBSDvlNztkWKpY1OVQ==";
+    let bucket = "testoz";
 
-    #[derive(Debug, Deserialize)]
-    #[allow(dead_code)]
-    struct EchoResponse {
-        method: String,
-        protocol: String,
-        host: String,
-        path: String,
-        ip: String,
-        headers: HashMap<String, String>,
-        #[serde(rename = "parsedQueryParams")]
-        parsed_query_params: HashMap<String, String>,
-        #[serde(rename = "parsedBody")]
-        parsed_body: Option<HashMap<String, serde_json::Value>>,
-        #[serde(rename = "rawBody")]
-        raw_body: Option<String>,
-        warnings: Option<Vec<String>>,
+    let influxdb_client = InfluxDbClient::new(influxdb_url, token);
+
+    // Example of writing data
+    #[derive(Serialize)]
+    struct Tags {
+        tag: String,
     }
 
-    #[derive(Debug, serde::Serialize)]
-    struct PostBody {
-        name: String,
-        age: u8,
+    #[derive(Serialize)]
+    struct Fields {
+        field: String,
+        another_field: i64
     }
 
-    let client = HttpClient::new();
+    let tags = Tags { tag: "value".to_string() };
+    let fields = Fields { field: "value".to_string(), another_field: 2675 };
 
-    let mut headers = HashMap::new();
-    headers.insert("Content-Type".to_string(), "application/json".to_string());
-
-    let mut query_params = HashMap::new();
-    query_params.insert("key".to_string(), "value".to_string());
-
-    let post_body = PostBody {
-        name: "John Doe".to_string(),
-        age: 30,
+    let data = InfluxDbDataPoint {
+        measurement: "tozzzzz".to_string(),
+        tags,
+        fields,
+        timestamp: Some(SystemTime::now()),
     };
 
-    match client
-        .request::<EchoResponse, _>(
-            "GET",
-            "https://echo.free.beeceptor.com",
-            None::<&()>,
-            Some(headers.clone()),
-            Some(query_params.clone()),
-            Some(Duration::from_secs(10)),
-        )
-        .await
-    {
-        Ok(response) => println!("GET response: {:?}", response),
-        Err(e) => match e {
-            HttpClientError::RequestError(reqwest_error) => {
-                eprintln!("Request error: {:?}", reqwest_error);
-            }
-            HttpClientError::DeserializeError(response_body) => {
-                eprintln!("Failed to deserialize response: {:?}", response_body);
-            }
-            HttpClientError::TimeoutError(timeout_error) => {
-                eprintln!("Timeout error: {:?}", timeout_error);
-            }
-            HttpClientError::InvalidMethodError(method_error) => {
-                eprintln!("Invalid method error: {:?}", method_error);
-            }
-        },
-    }
-
-    match client
-        .request::<EchoResponse, _>(
-            "POST",
-            "https://echo.free.beeceptor.com",
-            Some(&post_body),
-            Some(headers),
-            Some(query_params),
-            None,
-        )
-        .await
-    {
-        Ok(response) => println!("POST response: {:?}", response),
-        Err(e) => match e {
-            HttpClientError::RequestError(reqwest_error) => {
-                eprintln!("Request error: {:?}", reqwest_error);
-            }
-            HttpClientError::DeserializeError(response_body) => {
-                eprintln!("Failed to deserialize response: {:?}", response_body);
-            }
-            HttpClientError::TimeoutError(timeout_error) => {
-                eprintln!("Timeout error: {:?}", timeout_error);
-            }
-            HttpClientError::InvalidMethodError(method_error) => {
-                eprintln!("Invalid method error: {:?}", method_error);
-            }
-        },
+    match influxdb_client.write_data(org, bucket, data).await {
+        Ok(_) => println!("Data written successfully"),
+        Err(e) => eprintln!("Failed to write data: {:?}", e),
     }
 }
