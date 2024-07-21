@@ -1,40 +1,85 @@
-use std::time::{SystemTime};
-use serde::{Serialize};
-use connector::influxdb::{InfluxDbClient, InfluxDbDataPoint};
+use data_source::load_balancing::{RoundRobinLoadBalancingStrategy, LeastConnectionsLoadBalancingStrategy};
+use data_source::sender::DataSender;
+use tokio::net::TcpListener;
+use tokio::sync::{mpsc, oneshot};
+use tokio::io::AsyncReadExt;
+
+async fn start_listener(addr: String, ready_tx: oneshot::Sender<()>) {
+    let listener = TcpListener::bind(&addr).await.expect("Failed to bind to address");
+    ready_tx.send(()).expect("Failed to send ready signal");
+
+    loop {
+        let (mut socket, _) = listener.accept().await.expect("Failed to accept connection");
+        let addr_clone = addr.clone();
+        tokio::spawn(async move {
+            let mut buf = vec![0; 1024];
+            match socket.read(&mut buf).await {
+                Ok(n) if n == 0 => return, // connection closed
+                Ok(n) => {
+                    let received = String::from_utf8_lossy(&buf[..n]);
+                    println!("Received on {}: {}", addr_clone, received);
+                }
+                Err(e) => {
+                    eprintln!("Failed to read from socket; err = {:?}", e);
+                }
+            }
+        });
+    }
+}
 
 #[tokio::main]
 async fn main() {
-    let influxdb_url = "http://localhost:8086";
-    let org = "arslanelabs";
-    let token = "KAtopm-k4IVJUagoQm_obwIZF1WyRfSTzlHIGVkBc91otqztpOjkLnbAu8WJ9H7hVZjiOBSDvlNztkWKpY1OVQ==";
-    let bucket = "testoz";
+    let (tx, rx) = mpsc::channel(32);
+    let listeners = vec!["127.0.0.1:8080".to_string(), "127.0.0.1:8081".to_string()];
 
-    let influxdb_client = InfluxDbClient::new(influxdb_url, token);
+    // Choose the strategy here
+    let round_robin_strategy = RoundRobinLoadBalancingStrategy::new(&listeners);
+    let least_connections_strategy = LeastConnectionsLoadBalancingStrategy::new(&listeners);
 
-    // Example of writing data
-    #[derive(Serialize)]
-    struct Tags {
-        tag: String,
+    // Use one of the strategies
+    let mut data_sender = DataSender::new(listeners.clone(), rx, round_robin_strategy);
+
+    // Vector to hold the oneshot receiver handles
+    let mut ready_receivers = Vec::new();
+
+    // Spawn TCP listeners
+    let listener_handles: Vec<_> = listeners
+        .into_iter()
+        .map(|addr| {
+            let (ready_tx, ready_rx) = oneshot::channel();
+            ready_receivers.push(ready_rx);
+            tokio::spawn(start_listener(addr, ready_tx))
+        })
+        .collect();
+
+    // Wait for all listeners to be ready
+    for ready_rx in ready_receivers {
+        ready_rx.await.expect("Failed to receive ready signal");
     }
 
-    #[derive(Serialize)]
-    struct Fields {
-        field: String,
-        another_field: i64
+    // Channel to signal DataSender readiness
+    let (data_sender_ready_tx, data_sender_ready_rx) = oneshot::channel();
+
+    // Spawn the DataSender
+    let data_sender_handle = tokio::spawn(async move {
+        data_sender.run().await;
+        data_sender_ready_tx.send(()).expect("Failed to send DataSender ready signal");
+    });
+
+    // Example sending data
+    for i in 0..10 {
+        tx.send(format!("Message {}", i)).await.unwrap();
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 
-    let tags = Tags { tag: "value".to_string() };
-    let fields = Fields { field: "value".to_string(), another_field: 2675 };
+    // Wait for the DataSender to finish
+    data_sender_ready_rx.await.expect("Failed to receive DataSender ready signal");
 
-    let data = InfluxDbDataPoint {
-        measurement: "tozzzzz".to_string(),
-        tags,
-        fields,
-        timestamp: Some(SystemTime::now()),
-    };
-
-    match influxdb_client.write_data(org, bucket, data).await {
-        Ok(_) => println!("Data written successfully"),
-        Err(e) => eprintln!("Failed to write data: {:?}", e),
+    // Await the listener handles to keep the main function running
+    for handle in listener_handles {
+        handle.await.unwrap();
     }
+
+    // Ensure DataSender has finished
+    data_sender_handle.await.unwrap();
 }
