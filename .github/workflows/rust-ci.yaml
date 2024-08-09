@@ -12,6 +12,7 @@ on:
     paths-ignore:
       - 'infrastructure/**'
       - '.github/workflows/infrastructure-cicd.yml'
+      - Dockerfile
 
 env:
   CARGO_TERM_COLOR: always

@@ -1,1 +1,1 @@
-pub mod influxdb;
+pub mod data_sink;
