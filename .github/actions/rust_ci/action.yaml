@@ -1,0 +1,17 @@
+name: 'Rust CI'
+description: 'Rust CI'
+runs:
+  using: "composite"
+  steps:
+    - uses: dtolnay/rust-toolchain@stable
+    - name: Check Style
+      run: cargo clippy --verbose -- -D warnings 
+      shell: bash
+
+    - name: Build
+      run: cargo build --verbose
+      shell: bash
+
+    - name: Run tests
+      run: cargo test --verbose
+      shell: bash

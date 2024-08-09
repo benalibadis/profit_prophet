@@ -1,0 +1,126 @@
+name: 'Rust Release and Build'
+description: 'Reusable action for Rust release and build process'
+inputs:
+  github_token:
+    description: 'GitHub token'
+    required: true
+  targets:
+    description: 'JSON string of Rust build targets'
+    required: true
+  packages:
+    description: 'JSON string of Rust packages to build'
+    required: true  
+  pre_release:
+    description: 'Indicates if the release is a pre-release'
+    required: false
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Git
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+      shell: bash
+
+    - name: Rust Release
+      uses: ./.github/actions/versionning
+      id: versionning
+    
+    - name: Delete pre-release if existing
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        PRE_RELEASE_TAG=$(gh release list --json tagName,isPrerelease --jq '.[] | select(.isPrerelease==true) | .tagName' || echo "")
+        if [ -n "${PRE_RELEASE_TAG}" ]; then
+          gh release delete ${PRE_RELEASE_TAG}
+          git push --delete origin ${PRE_RELEASE_TAG}
+          git tag -d ${PRE_RELEASE_TAG}
+        fi
+      shell: bash
+
+    - name: Put Changelog with Release Commit
+      if: ${{ inputs.pre_release == 'false' }}
+      run: |
+        git checkout main
+        CHANGELOG="CHANGELOG.md"
+        NEW_CHANGELOG="NEW_CHANGELOG.md"
+
+        if [ ! -f "$CHANGELOG" ]; then
+            echo "# Changelog" > "$CHANGELOG"
+            echo "" >> "$CHANGELOG"
+        fi
+
+        TEMP_FILE=$(mktemp)
+
+        echo "# Changelog" > "$TEMP_FILE"
+        echo "" >> "$TEMP_FILE"
+        cat "$NEW_CHANGELOG" >> "$TEMP_FILE"
+        echo "" >> "$TEMP_FILE"
+
+        tail -n +2 "$CHANGELOG" >> "$TEMP_FILE"
+
+        mv "$TEMP_FILE" "$CHANGELOG"
+
+        git add CHANGELOG.md
+        git commit -m "chore(release): release version ${{ steps.versionning.outputs.version }}"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+      shell: bash
+
+    - name: Sync release-next with main
+      if: ${{ inputs.pre_release == 'false' }}
+      run: |
+        git checkout release-next
+        git reset --hard main
+        git push --force origin release-next
+      shell: bash
+
+    - name: Create release or pre-release
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        VERSION="${{ steps.versionning.outputs.version }}"
+        NOTES=$(tail -n +3 NEW_CHANGELOG.md)
+        if [ "${{ inputs.pre_release }}" == "true" ]; then
+          gh release create "${VERSION}" --title "${VERSION}" --notes "${NOTES}" --prerelease
+        else
+          gh release create "${VERSION}" --title "${VERSION}" --notes "${NOTES}"
+        fi
+      shell: bash
+
+    - name: Process targets and packages
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        targets=$(echo '${{ inputs.targets }}' | jq -r '.[]')
+        packages=$(echo '${{ inputs.packages }}' | jq -r '.[]')
+        for target in $targets; do
+          rustup target add $target
+          for package in $packages; do
+            cargo build --release --target $target --package $package
+            mv target/$target/release/$package "${package}_${target}_${{ steps.versionning.outputs.version }}"
+            gh release upload "${{ steps.versionning.outputs.version }}" "${package}_${target}_${{ steps.versionning.outputs.version }}" --clobber
+          done
+        done
+      shell: bash
+
+    - name: Create or update pull request from release-next to main
+      if: ${{ inputs.pre_release == 'true' }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+      run: |
+        PR_EXISTS=$(gh pr list --base main --head release-next --json number --jq '.[0].number')
+        VERSION="${{ steps.versionning.outputs.version }}"
+        NOTES=$(tail -n +3 NEW_CHANGELOG.md)
+        if [ -z "$PR_EXISTS" ]; then
+          gh pr create --title "release version ${{ steps.versionning.outputs.version }}" --body "${NOTES}" --base main --head release-next
+        else
+          gh pr edit $PR_EXISTS --body "${NOTES}" --title "release version ${{ steps.versionning.outputs.version }}"
+        fi
+      shell: bash

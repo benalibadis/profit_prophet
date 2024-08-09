@@ -1,0 +1,49 @@
+name: Rust CI/CD
+on:
+  pull_request:
+    branches:
+      - release-next
+      - main
+    types:
+      - closed
+    paths-ignore:
+      - 'infrastructure/**'
+      - '.github/workflows/infrastructure-cicd.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-pre-release:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref != 'release-next' && github.event.pull_request.base.ref == 'release-next'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Rust Release
+        uses: ./.github/actions/rust_release
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          targets: '["x86_64-unknown-linux-gnu"]'
+          packages: '["test-ci"]'
+          pre_release: 'true'
+
+  rust-release:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'release-next' && github.event.pull_request.base.ref == 'main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rust Release
+        uses: ./.github/actions/rust_release
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          targets: '["x86_64-unknown-linux-gnu"]'
+          packages: '["test-ci"]'
+          pre_release: 'false'

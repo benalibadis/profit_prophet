@@ -1,0 +1,134 @@
+name: 'Version Bump and Changelog'
+description: 'Generate the version and changelog based on the commits between main and release-next branches.'
+
+inputs:
+  main_branch:
+    description: 'The main branch to compare against'
+    required: false
+    default: 'main'
+  release_branch:
+    description: 'The release branch to compare'
+    required: false
+    default: 'release-next'
+  default_version:
+    description: 'Default version if no tags'
+    required: false
+    default: '0.0.0'
+outputs:
+  version:
+    description: 'The new version number'
+    value: ${{ steps.new_version.outputs.version }}
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Install jq
+      run: sudo apt-get install -y jq
+      shell: bash
+
+    - name: Get previous version
+      id: previous_version
+      run: |
+        TAG=$(gh release list --json tagName,isPrerelease --jq '.[] | select(.isPrerelease==false) | .tagName' || echo "${{ inputs.default_version }}")
+        echo "version=$TAG" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Fetch main and release branch
+      run: |
+        git fetch origin ${{ inputs.main_branch }} ${{ inputs.release_branch }}
+      shell: bash
+
+    - name: Get new version
+      id: new_version
+      run: |
+        COMMITS=$(git log origin/${{ inputs.main_branch }}..origin/${{ inputs.release_branch }} --pretty=format:"%s")
+        CURRENT_VERSION="${{ steps.previous_version.outputs.version }}"
+
+        MAJOR=false
+        MINOR=false
+        PATCH=false
+
+        while IFS= read -r COMMIT; do
+          if [[ "$COMMIT" == *"feat!"* ]] || [[ "$COMMIT" == *"breaking change"* ]]; then
+            MAJOR=true
+          elif [[ "$COMMIT" == *"feat"* ]]; then
+            MINOR=true
+          elif [[ "$COMMIT" == *"fix"* ]]; then
+            PATCH=true
+          fi
+        done <<< "$COMMITS"
+
+        if $MAJOR; then
+          VERSION_BUMP="major"
+        elif $MINOR; then
+          VERSION_BUMP="minor"
+        elif $PATCH; then
+          VERSION_BUMP="patch"
+        else
+          VERSION_BUMP="patch"
+        fi
+
+        if [ "$VERSION_BUMP" == "none" ]; then
+          NEW_VERSION=$CURRENT_VERSION
+        else
+          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+
+          if [ "$VERSION_BUMP" == "major" ]; then
+            NEW_VERSION=$((MAJOR + 1)).0.0
+          elif [ "$VERSION_BUMP" == "minor" ]; then
+            NEW_VERSION=$MAJOR.$((MINOR + 1)).0
+          elif [ "$VERSION_BUMP" == "patch" ]; then
+            NEW_VERSION=$MAJOR.$MINOR.$((PATCH + 1))
+          fi
+        fi
+
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Generate changelog
+      run: |
+        COMMITS=$(git log origin/${{ inputs.main_branch }}..origin/${{ inputs.release_branch }} --pretty=format:"%H %s")
+        NEW_VERSION="${{ steps.new_version.outputs.version }}"
+        CHANGELOG="## $NEW_VERSION - $(date +'%Y-%m-%d')\n\n"
+
+        BREAKING_CHANGES=""
+        FEATURES=""
+        FIXES=""
+        MISC=""
+
+        while IFS= read -r COMMIT; do
+          COMMIT_HASH=$(echo "$COMMIT" | awk '{print $1}')
+          COMMIT_MESSAGE=$(echo "$COMMIT" | cut -d' ' -f2-)
+          COMMIT_LINK="[${COMMIT_HASH::7}](https://github.com/${{ github.repository }}/commit/$COMMIT_HASH)"
+
+          if [[ "$COMMIT_MESSAGE" == *"feat!"* ]] || [[ "$COMMIT_MESSAGE" == *"breaking change"* ]]; then
+            BREAKING_CHANGES="$BREAKING_CHANGES- $COMMIT_MESSAGE ($COMMIT_LINK)\n"
+          elif [[ "$COMMIT_MESSAGE" == *"feat"* ]]; then
+            FEATURES="$FEATURES- $COMMIT_MESSAGE ($COMMIT_LINK)\n"
+          elif [[ "$COMMIT_MESSAGE" == *"fix"* ]]; then
+            FIXES="$FIXES- $COMMIT_MESSAGE ($COMMIT_LINK)\n"
+          else
+            MISC="$MISC- $COMMIT_MESSAGE ($COMMIT_LINK)\n"
+          fi
+        done <<< "$COMMITS"
+
+        if [ -n "$BREAKING_CHANGES" ]; then
+          CHANGELOG="$CHANGELOG### :warning:Breaking changes:\n$BREAKING_CHANGES\n"
+        fi
+        if [ -n "$FEATURES" ]; then
+          CHANGELOG="$CHANGELOG### :rocket:Features:\n$FEATURES\n"
+        fi
+        if [ -n "$FIXES" ]; then
+          CHANGELOG="$CHANGELOG### :bug:Bug fixes:\n$FIXES\n"
+        fi
+        if [ -n "$MISC" ]; then
+          CHANGELOG="$CHANGELOG### :gear:Miscellaneous:\n$MISC\n"
+        fi
+
+        echo -e "$CHANGELOG" > NEW_CHANGELOG.md
+      shell: bash
