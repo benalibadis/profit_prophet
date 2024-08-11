@@ -15,6 +15,20 @@ impl CircularBuffer {
         }
     }
 
+    #[cfg(not(feature = "unsafe"))]
+    #[inline(always)]
+    pub fn push(&mut self, value: f64) -> f64 {
+        let old_value = self.buffer[self.index];
+        self.buffer[self.index] = value;
+        self.index = self.index.wrapping_add(1);
+        if self.index == self.buffer.len() {
+            self.index = 0;
+            self.full = true;
+        }
+        old_value
+    }
+
+    #[cfg(feature = "unsafe")]
     #[inline(always)]
     pub fn push(&mut self, value: f64) -> f64 {
         let old_value = unsafe { *self.buffer.get_unchecked(self.index) };
@@ -48,10 +62,23 @@ impl CircularBuffer {
         self.full
     }
 
+    #[cfg(not(feature = "unsafe"))]
     #[inline(always)]
     pub fn clear(&mut self) {
         for elem in &mut self.buffer {
             *elem = 0.0;
+        }
+        self.index = 0;
+        self.full = false;
+    }
+
+    #[cfg(feature = "unsafe")]
+    #[inline(always)]
+    pub fn clear(&mut self) {
+        unsafe {
+            for i in 0..self.buffer.len() {
+                *self.buffer.get_unchecked_mut(i) = 0.0;
+            }
         }
         self.index = 0;
         self.full = false;
