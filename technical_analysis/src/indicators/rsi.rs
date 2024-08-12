@@ -49,7 +49,6 @@ impl Indicator for RelativeStrengthIndex {
                 (0.0, -change)
             };
 
-            // Using single assignment with weighted average update
             let period_f64 = self.period as f64;
             self.avg_gain = (self.avg_gain * (period_f64 - 1.0) + gain) / period_f64;
             self.avg_loss = (self.avg_loss * (period_f64 - 1.0) + loss) / period_f64;

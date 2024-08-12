@@ -3,7 +3,8 @@ members = [
     "connector",
     "data_source",
     "data_sink",
-    "metaflow"
+    "metaflow",
+    "technical_analysis"
 ]
 
 [workspace.dependencies]

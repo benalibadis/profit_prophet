@@ -3,6 +3,8 @@ pub struct CircularBuffer {
     buffer: Vec<f64>,
     index: usize,
     full: bool,
+    capacity: usize,
+    capacity_mask: usize,
 }
 
 impl CircularBuffer {
@@ -12,41 +14,45 @@ impl CircularBuffer {
             buffer: vec![0.0; capacity],
             index: 0,
             full: false,
+            capacity,
+            capacity_mask: capacity - 1,
         }
     }
 
     #[cfg(not(feature = "unsafe"))]
     #[inline(always)]
     pub fn push(&mut self, value: f64) -> f64 {
-        let old_value = self.buffer[self.index];
-        self.buffer[self.index] = value;
-        self.index = self.index.wrapping_add(1);
-        if self.index == self.buffer.len() {
-            self.index = 0;
+        let old_value = std::mem::replace(&mut self.buffer[self.index], value);
+
+        self.index = (self.index + 1) & self.capacity_mask;
+
+        if self.index == 0 {
             self.full = true;
         }
+
         old_value
     }
 
     #[cfg(feature = "unsafe")]
     #[inline(always)]
     pub fn push(&mut self, value: f64) -> f64 {
-        let old_value = unsafe { *self.buffer.get_unchecked(self.index) };
-        unsafe {
-            *self.buffer.get_unchecked_mut(self.index) = value;
-        }
-        self.index = self.index.wrapping_add(1);
-        if self.index == self.buffer.len() {
-            self.index = 0;
+        let old_value = unsafe {
+            std::mem::replace(self.buffer.get_unchecked_mut(self.index), value)
+        };
+
+        self.index = (self.index + 1) & self.capacity_mask;
+
+        if self.index == 0 {
             self.full = true;
         }
+
         old_value
     }
 
     #[inline(always)]
     pub fn len(&self) -> usize {
         if self.full {
-            self.buffer.len()
+            self.capacity
         } else {
             self.index
         }
@@ -54,7 +60,7 @@ impl CircularBuffer {
 
     #[inline(always)]
     pub fn capacity(&self) -> usize {
-        self.buffer.len()
+        self.capacity
     }
 
     #[inline(always)]
@@ -76,7 +82,7 @@ impl CircularBuffer {
     #[inline(always)]
     pub fn clear(&mut self) {
         unsafe {
-            for i in 0..self.buffer.len() {
+            for i in 0..self.capacity {
                 *self.buffer.get_unchecked_mut(i) = 0.0;
             }
         }
