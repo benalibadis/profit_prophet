@@ -1,13 +1,14 @@
 pub use crate::indicators::Indicator;
 use crate::CircularBuffer;
+use crate::IndicatorValue;
 
 #[cfg(feature = "simd")]
 use std::simd::{f64x4, prelude::SimdFloat};
 
 pub struct StandardDeviation {
     buffer: CircularBuffer,
-    sum: f64,
-    sum_of_squares: f64,
+    sum: IndicatorValue,
+    sum_of_squares: IndicatorValue,
 }
 
 impl StandardDeviation {
@@ -15,8 +16,8 @@ impl StandardDeviation {
     pub fn new(period: usize) -> Self {
         StandardDeviation {
             buffer: CircularBuffer::new(period),
-            sum: 0.0,
-            sum_of_squares: 0.0,
+            sum: 0.0.into(),
+            sum_of_squares: 0.0.into(),
         }
     }
 }
@@ -28,10 +29,10 @@ impl Default for StandardDeviation {
 }
 
 impl Indicator for StandardDeviation {
-    type Output = f64;
+    type Output = IndicatorValue;
     
     #[inline(always)]
-    fn next(&mut self, input: f64) -> Self::Output {
+    fn next(&mut self, input: IndicatorValue) -> Self::Output {
         let old_value = self.buffer.push(input);
         self.sum -= old_value;
         self.sum_of_squares -= old_value * old_value;
@@ -39,15 +40,15 @@ impl Indicator for StandardDeviation {
         self.sum += input;
         self.sum_of_squares += input * input;
 
-        let mean = self.sum / self.buffer.len() as f64;
-        let variance = (self.sum_of_squares / self.buffer.len() as f64) - (mean * mean);
+        let mean = self.sum / self.buffer.len();
+        let variance = (self.sum_of_squares / self.buffer.len()) - (mean * mean);
 
         variance.sqrt()
     }
 
     #[cfg(feature = "simd")]
     #[inline(always)]
-    fn next_chunk(&mut self, input: &[f64]) -> Self::Output {
+    fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
         let mut result = 0.0;
 
         for chunk in input.chunks_exact(4) {
@@ -64,8 +65,8 @@ impl Indicator for StandardDeviation {
             self.sum += sum_vec;
             self.sum_of_squares += sum_of_squares_vec;
 
-            let mean = self.sum / self.buffer.len() as f64;
-            let variance = (self.sum_of_squares / self.buffer.len() as f64) - (mean * mean);
+            let mean = self.sum / self.buffer.len();
+            let variance = (self.sum_of_squares / self.buffer.len()) - (mean * mean);
 
             result = variance.sqrt();
         }
@@ -75,14 +76,14 @@ impl Indicator for StandardDeviation {
 
     #[cfg(not(feature = "simd"))]
     #[inline(always)]
-    fn next_chunk(&mut self, input: &[f64]) -> Self::Output {
-        input.iter().fold(0.0, |_, &value| self.next(value))
+    fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
+        input.iter().fold(0.0.into(), |_, &value| self.next(value))
     }
 
     #[inline(always)]
     fn reset(&mut self) {
-        self.sum = 0.0;
-        self.sum_of_squares = 0.0;
+        self.sum = 0.0.into();
+        self.sum_of_squares = 0.0.into();
         self.buffer.clear();
     }
 }

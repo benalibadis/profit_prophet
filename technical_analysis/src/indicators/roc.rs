@@ -1,5 +1,6 @@
 pub use crate::indicators::Indicator;
 use crate::CircularBuffer;
+use crate::IndicatorValue;
 
 pub struct RateOfChange {
     buffer: CircularBuffer,
@@ -21,22 +22,22 @@ impl Default for RateOfChange {
 }
 
 impl Indicator for RateOfChange {
-    type Output = f64;
+    type Output = IndicatorValue;
 
     #[inline(always)]
-    fn next(&mut self, input: f64) -> f64 {
+    fn next(&mut self, input: IndicatorValue) -> IndicatorValue {
         let old_value = self.buffer.push(input);
 
-        if old_value == 0.0 {
-            0.0
+        if old_value == 0.0.into() {
+            0.0.into()
         } else {
-            ((input - old_value) / old_value) * 100.0
+            ((input - old_value) / old_value) * 100.0.into()
         }
     }
 
     #[inline(always)]
-    fn next_chunk(&mut self, input: &[f64]) -> Self::Output {
-        let mut result = 0.0;
+    fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
+        let mut result = 0.0.into();
         for &value in input {
             result = self.next(value);
         }

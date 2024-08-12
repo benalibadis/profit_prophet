@@ -3,16 +3,18 @@
 extern crate test;
 use test::Bencher;
 use technical_analysis::indicators::{Indicator, SimpleMovingAverage, StandardDeviation, RateOfChange, RelativeStrengthIndex, BollingerBands};
+use technical_analysis::IndicatorValue;
 
 // Function to generate 1000 pseudo-random numbers using a simple LCG
-fn generate_random_data(seed: u64, len: usize) -> Vec<f64> {
+fn generate_random_data(seed: u64, len: usize) -> Vec<IndicatorValue> {
     let mut state = seed;
     let mut data = Vec::with_capacity(len);
 
     for _ in 0..len {
-        // Simple LCG with default alpha (6364136223846793005)
+        // Simple LCG with default multiplier (6364136223846793005)
         state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
-        data.push(((state >> 32) as f64) / ((1u64 << 32) as f64) * 100.0);
+        let value = (state >> 32) as f64 / (1u64 << 32) as f64 * 100.0;
+        data.push(IndicatorValue::from(value));
     }
 
     data

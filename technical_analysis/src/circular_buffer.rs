@@ -1,6 +1,8 @@
+use crate::IndicatorValue;
+
 #[derive(Debug, Clone)]
 pub struct CircularBuffer {
-    buffer: Vec<f64>,
+    buffer: Vec<IndicatorValue>,
     index: usize,
     full: bool,
     capacity: usize,
@@ -11,7 +13,7 @@ impl CircularBuffer {
     #[inline(always)]
     pub fn new(capacity: usize) -> Self {
         CircularBuffer {
-            buffer: vec![0.0; capacity],
+            buffer: vec![0.0.into(); capacity],
             index: 0,
             full: false,
             capacity,
@@ -21,7 +23,7 @@ impl CircularBuffer {
 
     #[cfg(not(feature = "unsafe"))]
     #[inline(always)]
-    pub fn push(&mut self, value: f64) -> f64 {
+    pub fn push(&mut self, value: IndicatorValue) -> IndicatorValue {
         let old_value = std::mem::replace(&mut self.buffer[self.index], value);
 
         self.index = (self.index + 1) & self.capacity_mask;
@@ -35,7 +37,7 @@ impl CircularBuffer {
 
     #[cfg(feature = "unsafe")]
     #[inline(always)]
-    pub fn push(&mut self, value: f64) -> f64 {
+    pub fn push(&mut self, value: IndicatorValue) -> IndicatorValue {
         let old_value = unsafe {
             std::mem::replace(self.buffer.get_unchecked_mut(self.index), value)
         };
@@ -50,11 +52,11 @@ impl CircularBuffer {
     }
 
     #[inline(always)]
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> IndicatorValue {
         if self.full {
-            self.capacity
+            self.capacity.into()
         } else {
-            self.index
+            self.index.into()
         }
     }
 
@@ -72,7 +74,7 @@ impl CircularBuffer {
     #[inline(always)]
     pub fn clear(&mut self) {
         for elem in &mut self.buffer {
-            *elem = 0.0;
+            *elem = 0.0.into();
         }
         self.index = 0;
         self.full = false;
@@ -83,7 +85,7 @@ impl CircularBuffer {
     pub fn clear(&mut self) {
         unsafe {
             for i in 0..self.capacity {
-                *self.buffer.get_unchecked_mut(i) = 0.0;
+                *self.buffer.get_unchecked_mut(i) = 0.0.into();
             }
         }
         self.index = 0;

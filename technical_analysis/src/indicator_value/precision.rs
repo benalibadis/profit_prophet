@@ -1,8 +1,11 @@
 use rust_decimal::Decimal;
+use rust_decimal::MathematicalOps;
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
-use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign};
+use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Neg};
 use std::str::FromStr;
+use std::cmp::Ordering;
 
+#[derive(Copy, Clone, Debug)]
 pub struct IndicatorValue {
     value: Decimal,
 }
@@ -18,6 +21,13 @@ impl IndicatorValue {
     pub fn to_f64(&self) -> f64 {
         self.value.to_f64().expect("Failed to convert Decimal to f64")
     }
+    
+    #[inline(always)]
+    pub fn sqrt(&self) -> Self {
+        Self {
+            value: self.value.sqrt().expect("Failed to compute sqrt")
+        }
+    }
 }
 
 impl From<f64> for IndicatorValue {
@@ -32,6 +42,72 @@ impl From<&str> for IndicatorValue {
     fn from(value: &str) -> Self {
         Self {
             value: Decimal::from_str(value).expect("Invalid number format")
+        }
+    }
+}
+
+impl From<usize> for IndicatorValue {
+    #[inline(always)]
+    fn from(value: usize) -> Self {
+        Self {
+            value: Decimal::from_usize(value).expect("Failed to convert f64 to Decimal")
+        }
+    }
+}
+
+impl From<u64> for IndicatorValue {
+    #[inline(always)]
+    fn from(value: u64) -> Self {
+        Self {
+            value: Decimal::from_u64(value).expect("Failed to convert f64 to Decimal")
+        }
+    }
+}
+
+impl PartialEq for IndicatorValue {
+    #[inline(always)]
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl Eq for IndicatorValue {}
+
+impl PartialOrd for IndicatorValue {
+
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.value.partial_cmp(&other.value)
+    }
+    
+    #[inline(always)]
+    fn lt(&self, other: &Self) -> bool {
+        self.value < other.value
+    }
+
+    #[inline(always)]
+    fn le(&self, other: &Self) -> bool {
+        self.value <= other.value
+    }
+
+    #[inline(always)]
+    fn gt(&self, other: &Self) -> bool {
+        self.value > other.value
+    }
+
+    #[inline(always)]
+    fn ge(&self, other: &Self) -> bool {
+        self.value >= other.value
+    }
+}
+
+impl Neg for IndicatorValue {
+    type Output = Self;
+
+    #[inline(always)]
+    fn neg(self) -> Self::Output {
+        Self{
+            value: self.value.neg()
         }
     }
 }

@@ -1,31 +1,32 @@
 pub use crate::indicators::Indicator;
+use crate::IndicatorValue;
 
 #[derive(Debug, Clone)]
 pub struct RelativeStrengthIndex {
-    period: usize,
-    avg_gain: f64,
-    avg_loss: f64,
-    prev_close: Option<f64>,
+    period: IndicatorValue,
+    avg_gain: IndicatorValue,
+    avg_loss: IndicatorValue,
+    prev_close: Option<IndicatorValue>,
 }
 
 impl RelativeStrengthIndex {
     #[inline(always)]
     pub fn new(period: usize) -> Self {
         RelativeStrengthIndex {
-            period,
-            avg_gain: 0.0,
-            avg_loss: 0.0,
+            period: period.into(),
+            avg_gain: 0.0.into(),
+            avg_loss: 0.0.into(),
             prev_close: None,
         }
     }
 
     #[inline(always)]
-    fn calculate_rsi(&self) -> f64 {
-        if self.avg_loss == 0.0 {
-            100.0
+    fn calculate_rsi(&self) -> IndicatorValue {
+        if self.avg_loss == 0.0.into() {
+            100.0.into()
         } else {
             let rs = self.avg_gain / self.avg_loss;
-            100.0 - (100.0 / (1.0 + rs))
+            IndicatorValue::from(100.0) - (IndicatorValue::from(100.0) / (IndicatorValue::from(1.0) + rs))
         }
     }
 }
@@ -37,21 +38,20 @@ impl Default for RelativeStrengthIndex {
 }
 
 impl Indicator for RelativeStrengthIndex {
-    type Output = f64;
+    type Output = IndicatorValue;
 
     #[inline(always)]
-    fn next(&mut self, input: f64) -> Self::Output {
+    fn next(&mut self, input: IndicatorValue) -> Self::Output {
         if let Some(prev) = self.prev_close {
             let change = input - prev;
-            let (gain, loss) = if change > 0.0 {
-                (change, 0.0)
+            let (gain, loss) = if change > 0.0.into() {
+                (change, 0.0.into())
             } else {
-                (0.0, -change)
+                (0.0.into(), -change)
             };
 
-            let period_f64 = self.period as f64;
-            self.avg_gain = (self.avg_gain * (period_f64 - 1.0) + gain) / period_f64;
-            self.avg_loss = (self.avg_loss * (period_f64 - 1.0) + loss) / period_f64;
+            self.avg_gain = (self.avg_gain * (self.period - 1.0.into()) + gain) / self.period;
+            self.avg_loss = (self.avg_loss * (self.period - 1.0.into()) + loss) / self.period;
         }
 
         self.prev_close = Some(input);
@@ -59,14 +59,14 @@ impl Indicator for RelativeStrengthIndex {
     }
 
     #[inline(always)]
-    fn next_chunk(&mut self, input: &[f64]) -> Self::Output {
-        input.iter().fold(0.0, |_, &value| self.next(value))
+    fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
+        input.iter().fold(0.0.into(), |_, &value| self.next(value))
     }
 
     #[inline(always)]
     fn reset(&mut self) {
-        self.avg_gain = 0.0;
-        self.avg_loss = 0.0;
+        self.avg_gain = 0.0.into();
+        self.avg_loss = 0.0.into();
         self.prev_close = None;
     }
 }
