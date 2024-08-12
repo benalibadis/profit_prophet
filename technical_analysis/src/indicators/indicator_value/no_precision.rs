@@ -1,6 +1,5 @@
 use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign};
 
-#[derive(Copy, Clone, Debug)]
 pub struct IndicatorValue {
     value: f64,
 }

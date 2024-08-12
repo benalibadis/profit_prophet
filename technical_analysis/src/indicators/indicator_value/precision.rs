@@ -3,7 +3,6 @@ use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign};
 use std::str::FromStr;
 
-#[derive(Copy, Clone, Debug)]
 pub struct IndicatorValue {
     value: Decimal,
 }
