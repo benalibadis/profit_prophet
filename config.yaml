@@ -75,3 +75,8 @@ data_sinks:
       url: "http://localhost:8086"
       token: "zTNS2D4FExOhaX2FZ9d6-WDDmcNjpRnmeKY_b4XBGl96gZ0iweD1OOhQW_ojmbwm1w2LzCU-_4Wqn3i6gNdADQ=="
     address: "127.0.0.1:8081"
+  - name: postgres-sink
+    connector:
+      type: postgresql
+      connection_string: "postgres://arslane:supersecret123@localhost/profitpostgre"
+    address: "127.0.0.1:5432"

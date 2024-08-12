@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use crate::Message;
 use crate::http::{HttpClient, HttpClientError};
 use crate::influxdb::{InfluxDbClient, InfluxDbClientError};
+use crate::postgresql::{PostgresClient, PostgresError};
 use thiserror::Error;
 
 
@@ -12,6 +13,10 @@ pub enum DataConnectorError {
     HttpClientError(#[from] HttpClientError),
     #[error("InfluxDB client error: {0}")]
     InfluxDbClientError(#[from] InfluxDbClientError),
+    #[error("PostgreSQL client error: {0}")]
+    PostgresError(#[from] PostgresError),
+    #[error("Serialization error: {0}")]
+    SerializationError(#[from] serde_json::Error),
     #[error("Other error: {0}")]
     OtherError(String),
 }
@@ -26,6 +31,7 @@ pub trait DataConnector: Send + Sync
 pub enum Connector {
     Http(HttpClient),
     InfluxDb(InfluxDbClient),
+    Postgres(PostgresClient),
 }
 
 impl Connector {
@@ -33,6 +39,7 @@ impl Connector {
         match self {
             Connector::Http(client) => client.write(data).await,
             Connector::InfluxDb(client) => client.write(data).await,
+            Connector::Postgres(client) => client.write(data).await,
         }
     }
 
@@ -40,6 +47,7 @@ impl Connector {
         match self {
             Connector::Http(client) => client.read(data).await,
             Connector::InfluxDb(client) => client.read(data).await,
+            Connector::Postgres(client) => client.read(data).await,
         }
     }
 }
