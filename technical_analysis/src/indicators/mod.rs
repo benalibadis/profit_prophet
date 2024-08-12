@@ -3,7 +3,9 @@ mod stdev;
 mod bollinger_bands;
 mod roc;
 mod rsi;
+mod indicator_value;
 
+pub use indicator_value::IndicatorValue;
 pub use sma::SimpleMovingAverage;
 pub use stdev::StandardDeviation;
 pub use bollinger_bands::{BollingerBands, BollingerBandsOutput};
