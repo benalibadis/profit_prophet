@@ -1,4 +1,4 @@
-pub use crate::indicators::Indicator;
+use crate::indicators::Indicator;
 use crate::indicators::sma::SimpleMovingAverage;
 use crate::indicators::stdev::StandardDeviation;
 use crate::IndicatorValue;

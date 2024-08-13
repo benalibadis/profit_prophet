@@ -5,99 +5,89 @@ use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, N
 use std::str::FromStr;
 use std::cmp::Ordering;
 
+#[repr(transparent)]
 #[derive(Copy, Clone, Debug)]
-pub struct IndicatorValue {
-    value: Decimal,
-}
+pub struct IndicatorValue(Decimal);
 
 impl IndicatorValue {
 
     #[inline(always)]
-    pub fn get_value(&self) -> Decimal {
-        self.value
+    pub fn value(&self) -> Decimal {
+        self.0
     }
 
     #[inline(always)]
     pub fn to_f64(&self) -> f64 {
-        self.value.to_f64().expect("Failed to convert Decimal to f64")
+        self.0.to_f64().unwrap_or_else(|| panic!("Failed to convert Decimal to f64"))
     }
     
     #[inline(always)]
     pub fn sqrt(&self) -> Self {
-        Self {
-            value: self.value.sqrt().expect("Failed to compute sqrt")
-        }
+        Self(self.0.sqrt().unwrap_or_else(|| panic!("Failed to compute sqrt")))
     }
 }
 
 impl From<f64> for IndicatorValue {
+    #[inline(always)]
     fn from(value: f64) -> Self {
-        Self {
-            value: Decimal::from_f64(value).expect("Failed to convert f64 to Decimal")
-        }
+        Self(Decimal::from_f64(value).unwrap_or_else(|| panic!("Failed to convert f64 to Decimal")))
     }
 }
 
 impl From<&str> for IndicatorValue {
+    #[inline(always)]
     fn from(value: &str) -> Self {
-        Self {
-            value: Decimal::from_str(value).expect("Invalid number format")
-        }
+        Self(Decimal::from_str(value).unwrap_or_else(|_| panic!("Invalid number format")))
     }
 }
 
 impl From<usize> for IndicatorValue {
     #[inline(always)]
     fn from(value: usize) -> Self {
-        Self {
-            value: Decimal::from_usize(value).expect("Failed to convert f64 to Decimal")
-        }
+        Self(Decimal::from_usize(value).unwrap_or_else(|| panic!("Failed to convert usize to Decimal")))
     }
 }
 
 impl From<u64> for IndicatorValue {
     #[inline(always)]
     fn from(value: u64) -> Self {
-        Self {
-            value: Decimal::from_u64(value).expect("Failed to convert f64 to Decimal")
-        }
+        Self(Decimal::from_u64(value).unwrap_or_else(|| panic!("Failed to convert u64 to Decimal")))
     }
 }
 
 impl PartialEq for IndicatorValue {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
-        self.value == other.value
+        self.0 == other.0
     }
 }
 
 impl Eq for IndicatorValue {}
 
 impl PartialOrd for IndicatorValue {
-
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.value.partial_cmp(&other.value)
+        self.0.partial_cmp(&other.0)
     }
-    
+
     #[inline(always)]
     fn lt(&self, other: &Self) -> bool {
-        self.value < other.value
+        self.0 < other.0
     }
 
     #[inline(always)]
     fn le(&self, other: &Self) -> bool {
-        self.value <= other.value
+        self.0 <= other.0
     }
 
     #[inline(always)]
     fn gt(&self, other: &Self) -> bool {
-        self.value > other.value
+        self.0 > other.0
     }
 
     #[inline(always)]
     fn ge(&self, other: &Self) -> bool {
-        self.value >= other.value
+        self.0 >= other.0
     }
 }
 
@@ -106,9 +96,7 @@ impl Neg for IndicatorValue {
 
     #[inline(always)]
     fn neg(self) -> Self::Output {
-        Self{
-            value: self.value.neg()
-        }
+        Self(-self.0)
     }
 }
 
@@ -117,9 +105,7 @@ impl Add for IndicatorValue {
 
     #[inline(always)]
     fn add(self, other: Self) -> Self::Output {
-        Self {
-            value: self.value + other.value,
-        }
+        Self(self.0 + other.0)
     }
 }
 
@@ -128,9 +114,7 @@ impl Sub for IndicatorValue {
 
     #[inline(always)]
     fn sub(self, other: Self) -> Self::Output {
-        Self {
-            value: self.value - other.value,
-        }
+        Self(self.0 - other.0)
     }
 }
 
@@ -139,9 +123,7 @@ impl Mul for IndicatorValue {
 
     #[inline(always)]
     fn mul(self, other: Self) -> Self::Output {
-        Self {
-            value: self.value * other.value,
-        }
+        Self(self.0 * other.0)
     }
 }
 
@@ -150,34 +132,34 @@ impl Div for IndicatorValue {
 
     #[inline(always)]
     fn div(self, other: Self) -> Self::Output {
-        Self {
-            value: self.value / other.value,
-        }
+        Self(self.0 / other.0)
     }
 }
 
 impl AddAssign for IndicatorValue {
     #[inline(always)]
     fn add_assign(&mut self, other: Self) {
-        self.value += other.value;
+        self.0 += other.0;
     }
 }
 
 impl SubAssign for IndicatorValue {
     #[inline(always)]
     fn sub_assign(&mut self, other: Self) {
-        self.value -= other.value;
+        self.0 -= other.0;
     }
 }
+
 impl MulAssign for IndicatorValue {
     #[inline(always)]
     fn mul_assign(&mut self, other: Self) {
-        self.value *= other.value;
+        self.0 *= other.0;
     }
 }
+
 impl DivAssign for IndicatorValue {
     #[inline(always)]
     fn div_assign(&mut self, other: Self) {
-        self.value /= other.value;
+        self.0 /= other.0;
     }
 }

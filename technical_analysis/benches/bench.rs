@@ -70,11 +70,10 @@ fn bench_stdev_p140(b: &mut Bencher) {
 #[bench]
 fn bench_stdev_simd_p14(b: &mut Bencher) {
     let data = generate_random_data(12345, 1000);
-    let _iter = data.iter().cycle();
-    let _indicator = StandardDeviation::new(14);
+    let mut _iter = data.iter().cycle();
+    let mut _indicator = StandardDeviation::new(14);
 
     b.iter(|| {
-        #[cfg(feature = "simd")]
         _indicator.next_chunk(&[*_iter.next().unwrap()])
     });
 }
@@ -82,11 +81,10 @@ fn bench_stdev_simd_p14(b: &mut Bencher) {
 #[bench]
 fn bench_stdev_simd_p140(b: &mut Bencher) {
     let data = generate_random_data(12345, 1000);
-    let _iter = data.iter().cycle();
-    let _indicator = StandardDeviation::new(140);
+    let mut _iter = data.iter().cycle();
+    let mut _indicator = StandardDeviation::new(140);
 
     b.iter(|| {
-        #[cfg(feature = "simd")]
         _indicator.next_chunk(&[*_iter.next().unwrap()])
     });
 }

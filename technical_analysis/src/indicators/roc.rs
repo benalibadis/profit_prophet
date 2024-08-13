@@ -1,4 +1,4 @@
-pub use crate::indicators::Indicator;
+use crate::indicators::Indicator;
 use crate::CircularBuffer;
 use crate::IndicatorValue;
 

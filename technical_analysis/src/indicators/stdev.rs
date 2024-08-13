@@ -1,8 +1,6 @@
-pub use crate::indicators::Indicator;
-use crate::CircularBuffer;
-use crate::IndicatorValue;
-
-#[cfg(feature = "simd")]
+use crate::{CircularBuffer, IndicatorValue};
+use crate::indicators::Indicator;
+#[cfg(not(feature = "precision"))]
 use std::simd::{f64x4, prelude::SimdFloat};
 
 pub struct StandardDeviation {
@@ -30,10 +28,12 @@ impl Default for StandardDeviation {
 
 impl Indicator for StandardDeviation {
     type Output = IndicatorValue;
-    
+
     #[inline(always)]
     fn next(&mut self, input: IndicatorValue) -> Self::Output {
         let old_value = self.buffer.push(input);
+
+        // Update sum and sum_of_squares with IndicatorValue
         self.sum -= old_value;
         self.sum_of_squares -= old_value * old_value;
 
@@ -46,24 +46,31 @@ impl Indicator for StandardDeviation {
         variance.sqrt()
     }
 
-    #[cfg(feature = "simd")]
+    #[cfg(not(feature = "precision"))]
     #[inline(always)]
     fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
-        let mut result = 0.0;
+        let mut result: IndicatorValue = 0.0.into();
 
         for chunk in input.chunks_exact(4) {
-            let values = f64x4::from_slice(chunk);
+            let values = f64x4::from_array([
+                chunk[0].value(),
+                chunk[1].value(),
+                chunk[2].value(),
+                chunk[3].value(),
+            ]);
+
             let sum_vec = values.reduce_sum();
             let sum_of_squares_vec = (values * values).reduce_sum();
 
             for &value in chunk {
                 let old_value = self.buffer.push(value);
+
                 self.sum -= old_value;
                 self.sum_of_squares -= old_value * old_value;
             }
 
-            self.sum += sum_vec;
-            self.sum_of_squares += sum_of_squares_vec;
+            self.sum += sum_vec.into();
+            self.sum_of_squares += sum_of_squares_vec.into();
 
             let mean = self.sum / self.buffer.len();
             let variance = (self.sum_of_squares / self.buffer.len()) - (mean * mean);
@@ -74,7 +81,7 @@ impl Indicator for StandardDeviation {
         result
     }
 
-    #[cfg(not(feature = "simd"))]
+    #[cfg(feature = "precision")]
     #[inline(always)]
     fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
         input.iter().fold(0.0.into(), |_, &value| self.next(value))

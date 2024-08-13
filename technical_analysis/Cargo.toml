@@ -9,7 +9,6 @@ rust_decimal = { version = "1.35", features = ["maths"], optional = true }
 [dev-dependencies]
 
 [features]
-default = ["precision", "simd"]
-simd = []
+default = []
 precision = ["rust_decimal"]
 unsafe = []
