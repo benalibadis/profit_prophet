@@ -20,7 +20,7 @@ fn generate_random_data(seed: u64, len: usize) -> Vec<IndicatorValue> {
     data
 }
 
-fn bench_indicator<T: Indicator + Default>(b: &mut Bencher) {
+fn bench_indicator<T: Indicator<Input = IndicatorValue> + Default>(b: &mut Bencher) {
     let data = generate_random_data(12345, 1000);
     let mut iter = data.iter().cycle();
     let mut indicator = T::default();

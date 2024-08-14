@@ -28,9 +28,10 @@ impl Default for StandardDeviation {
 
 impl Indicator for StandardDeviation {
     type Output = IndicatorValue;
+    type Input = IndicatorValue;
 
     #[inline(always)]
-    fn next(&mut self, input: IndicatorValue) -> Self::Output {
+    fn next(&mut self, input: Self::Input) -> Self::Output {
         let old_value = self.buffer.push(input);
 
         // Update sum and sum_of_squares with IndicatorValue
@@ -40,15 +41,15 @@ impl Indicator for StandardDeviation {
         self.sum += input;
         self.sum_of_squares += input * input;
 
-        let mean = self.sum / self.buffer.len();
-        let variance = (self.sum_of_squares / self.buffer.len()) - (mean * mean);
+        let mean = self.sum / self.buffer.len().into();
+        let variance = (self.sum_of_squares / self.buffer.len().into()) - (mean * mean);
 
         variance.sqrt()
     }
 
     #[cfg(not(feature = "precision"))]
     #[inline(always)]
-    fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
+    fn next_chunk(&mut self, input: &[Self::Input]) -> Self::Output {
         let mut result: IndicatorValue = 0.0.into();
 
         for chunk in input.chunks_exact(4) {
@@ -72,8 +73,8 @@ impl Indicator for StandardDeviation {
             self.sum += sum_vec.into();
             self.sum_of_squares += sum_of_squares_vec.into();
 
-            let mean = self.sum / self.buffer.len();
-            let variance = (self.sum_of_squares / self.buffer.len()) - (mean * mean);
+            let mean = self.sum / self.buffer.len().into();
+            let variance = (self.sum_of_squares / self.buffer.len().into()) - (mean * mean);
 
             result = variance.sqrt();
         }

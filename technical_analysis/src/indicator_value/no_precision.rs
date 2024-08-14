@@ -1,4 +1,5 @@
 use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Neg};
+use std::iter::Sum;
 use std::cmp::Ordering;
 
 #[repr(transparent)]
@@ -20,6 +21,11 @@ impl IndicatorValue {
     #[inline(always)]
     pub fn sqrt(&self) -> Self {
         Self(self.0.sqrt())
+    }
+
+    #[inline(always)]
+    pub fn abs(&self) -> Self {
+        Self(self.0.abs())
     }
     
 }
@@ -89,6 +95,19 @@ impl PartialOrd for IndicatorValue {
     }
 }
 
+impl Ord for IndicatorValue {
+    #[inline(always)]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.partial_cmp(&other.0).unwrap_or(Ordering::Equal)
+    }
+}
+
+impl Sum for IndicatorValue {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(IndicatorValue::from(0.0), Add::add)
+    }
+}
+
 impl Neg for IndicatorValue {
     type Output = Self;
 
@@ -98,34 +117,12 @@ impl Neg for IndicatorValue {
     }
 }
 
-impl IndicatorValue {
-    #[inline(always)]
-    fn add_safe(self, other: Self) -> Self {
-        Self(self.0 + other.0)
-    }
-
-    #[inline(always)]
-    fn sub_safe(self, other: Self) -> Self {
-        Self(self.0 - other.0)
-    }
-
-    #[inline(always)]
-    fn mul_safe(self, other: Self) -> Self {
-        Self(self.0 * other.0)
-    }
-
-    #[inline(always)]
-    fn div_safe(self, other: Self) -> Self {
-        Self(self.0 / other.0)
-    }
-}
-
 impl Add for IndicatorValue {
     type Output = Self;
 
     #[inline(always)]
     fn add(self, other: Self) -> Self::Output {
-        self.add_safe(other)
+        Self(self.0 + other.0)
     }
 }
 
@@ -134,7 +131,7 @@ impl Sub for IndicatorValue {
 
     #[inline(always)]
     fn sub(self, other: Self) -> Self::Output {
-        self.sub_safe(other)
+        Self(self.0 - other.0)
     }
 }
 
@@ -143,7 +140,7 @@ impl Mul for IndicatorValue {
 
     #[inline(always)]
     fn mul(self, other: Self) -> Self::Output {
-        self.mul_safe(other)
+        Self(self.0 * other.0)
     }
 }
 
@@ -152,7 +149,7 @@ impl Div for IndicatorValue {
 
     #[inline(always)]
     fn div(self, other: Self) -> Self::Output {
-        self.div_safe(other)
+        Self(self.0 / other.0)
     }
 }
 

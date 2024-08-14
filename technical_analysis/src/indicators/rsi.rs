@@ -39,9 +39,10 @@ impl Default for RelativeStrengthIndex {
 
 impl Indicator for RelativeStrengthIndex {
     type Output = IndicatorValue;
+    type Input = IndicatorValue;
 
     #[inline(always)]
-    fn next(&mut self, input: IndicatorValue) -> Self::Output {
+    fn next(&mut self, input: Self::Input) -> Self::Output {
         if let Some(prev) = self.prev_close {
             let change = input - prev;
             let (gain, loss) = if change > 0.0.into() {
@@ -59,7 +60,7 @@ impl Indicator for RelativeStrengthIndex {
     }
 
     #[inline(always)]
-    fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
+    fn next_chunk(&mut self, input: &[Self::Input]) -> Self::Output {
         input.iter().fold(0.0.into(), |_, &value| self.next(value))
     }
 

@@ -1,3 +1,4 @@
+use std::iter::FusedIterator;
 use crate::IndicatorValue;
 
 #[derive(Debug, Clone)]
@@ -17,7 +18,7 @@ impl CircularBuffer {
             index: 0,
             full: false,
             capacity,
-            capacity_mask: capacity - 1,
+            capacity_mask: capacity.saturating_sub(1), // Use saturating_sub for safety.
         }
     }
 
@@ -52,11 +53,11 @@ impl CircularBuffer {
     }
 
     #[inline(always)]
-    pub fn len(&self) -> IndicatorValue {
+    pub fn len(&self) -> usize {
         if self.full {
-            self.capacity.into()
+            self.capacity
         } else {
-            self.index.into()
+            self.index
         }
     }
 
@@ -91,4 +92,164 @@ impl CircularBuffer {
         self.index = 0;
         self.full = false;
     }
+
+    #[inline(always)]
+    pub fn iter(&self) -> CircularBufferIterator {
+        CircularBufferIterator::new(self)
+    }
+
+    #[inline(always)]
+    pub fn iter_reversed(&self) -> ReversedCircularBufferIterator {
+        ReversedCircularBufferIterator::new(self)
+    }
 }
+
+pub struct ReversedCircularBufferIterator<'a> {
+    buffer: &'a CircularBuffer,
+    index: usize,
+    remaining: usize,
+}
+
+impl<'a> ReversedCircularBufferIterator<'a> {
+    #[inline(always)]
+    pub fn new(buffer: &'a CircularBuffer) -> Self {
+        let remaining = buffer.len();
+        let index = if buffer.is_full() {
+            (buffer.index.wrapping_add(buffer.capacity()).wrapping_sub(1)) & buffer.capacity_mask
+        } else if buffer.index == 0 {
+            0
+        } else {
+            buffer.index.wrapping_sub(1)
+        };
+
+        ReversedCircularBufferIterator {
+            buffer,
+            index,
+            remaining,
+        }
+    }
+}
+
+impl<'a> Iterator for ReversedCircularBufferIterator<'a> {
+    type Item = IndicatorValue;
+
+    #[inline(always)]
+    #[cfg(feature = "unsafe")]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining == 0 {
+            return None;
+        }
+
+        let value = unsafe { *self.buffer.buffer.get_unchecked(self.index) };
+        self.index = if self.index == 0 {
+            self.buffer.capacity_mask
+        } else {
+            self.index.wrapping_sub(1)
+        };
+        self.remaining -= 1;
+
+        Some(value)
+    }
+
+    #[inline(always)]
+    #[cfg(not(feature = "unsafe"))]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining == 0 {
+            return None;
+        }
+
+        let value = self.buffer.buffer[self.index];
+        self.index = if self.index == 0 {
+            self.buffer.capacity_mask
+        } else {
+            self.index.wrapping_sub(1)
+        };
+        self.remaining -= 1;
+
+        Some(value)
+    }
+
+    #[inline(always)]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.remaining, Some(self.remaining))
+    }
+}
+
+impl<'a> ExactSizeIterator for ReversedCircularBufferIterator<'a> {
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.remaining
+    }
+}
+
+impl<'a> FusedIterator for ReversedCircularBufferIterator<'a> {}
+
+pub struct CircularBufferIterator<'a> {
+    buffer: &'a CircularBuffer,
+    index: usize,
+    remaining: usize,
+}
+
+impl<'a> CircularBufferIterator<'a> {
+    #[inline(always)]
+    pub fn new(buffer: &'a CircularBuffer) -> Self {
+        let remaining = buffer.len();
+        let index = if buffer.is_full() {
+            buffer.index
+        } else {
+            0
+        };
+
+        CircularBufferIterator {
+            buffer,
+            index,
+            remaining,
+        }
+    }
+}
+
+impl<'a> Iterator for CircularBufferIterator<'a> {
+    type Item = IndicatorValue;
+
+    #[inline(always)]
+    #[cfg(feature = "unsafe")]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining == 0 {
+            return None;
+        }
+
+        let value = unsafe { *self.buffer.buffer.get_unchecked(self.index) };
+        self.index = (self.index + 1) & self.buffer.capacity_mask;
+        self.remaining -= 1;
+
+        Some(value)
+    }
+
+    #[inline(always)]
+    #[cfg(not(feature = "unsafe"))]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining == 0 {
+            return None;
+        }
+
+        let value = self.buffer.buffer[self.index];
+        self.index = (self.index + 1) & self.buffer.capacity_mask;
+        self.remaining -= 1;
+
+        Some(value)
+    }
+
+    #[inline(always)]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.remaining, Some(self.remaining))
+    }
+}
+
+impl<'a> ExactSizeIterator for CircularBufferIterator<'a> {
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.remaining
+    }
+}
+
+impl<'a> FusedIterator for CircularBufferIterator<'a> {}

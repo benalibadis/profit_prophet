@@ -2,50 +2,47 @@ use crate::indicators::Indicator;
 use crate::CircularBuffer;
 use crate::IndicatorValue;
 
-pub struct SimpleMovingAverage {
+pub struct MeanAbsDev {
     buffer: CircularBuffer,
-    sum: IndicatorValue,
+    period: usize,
 }
 
-impl SimpleMovingAverage {
+impl MeanAbsDev {
     #[inline(always)]
     pub fn new(period: usize) -> Self {
-        SimpleMovingAverage {
+        MeanAbsDev {
             buffer: CircularBuffer::new(period),
-            sum: 0.0.into(),
+            period,
         }
     }
 }
 
-impl Default for SimpleMovingAverage {
+impl Default for MeanAbsDev {
     fn default() -> Self {
-        Self::new(14)
+        MeanAbsDev::new(20) // Default period of 20
     }
 }
 
-impl Indicator for SimpleMovingAverage {
-    type Output = IndicatorValue;
+impl Indicator for MeanAbsDev {
     type Input = IndicatorValue;
+    type Output = IndicatorValue;
 
     #[inline(always)]
     fn next(&mut self, input: Self::Input) -> Self::Output {
-        let old_value = self.buffer.push(input);
-        self.sum += input - old_value;
-        self.sum / self.buffer.len().into()
+        self.buffer.push(input);
+
+        let mean = self.buffer.iter().sum::<IndicatorValue>() / self.period.into();
+
+        self.buffer.iter().map(|value| (value - mean).abs()).sum::<IndicatorValue>() / self.period.into()
     }
 
     #[inline(always)]
     fn next_chunk(&mut self, input: &[Self::Input]) -> Self::Output {
-        let mut result = 0.0.into();
-        for &value in input {
-            result = self.next(value);
-        }
-        result
+        input.iter().fold(0.0.into(), |_, &value| self.next(value))
     }
 
     #[inline(always)]
     fn reset(&mut self) {
         self.buffer.clear();
-        self.sum = 0.0.into();
     }
 }

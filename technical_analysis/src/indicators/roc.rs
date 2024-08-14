@@ -23,9 +23,10 @@ impl Default for RateOfChange {
 
 impl Indicator for RateOfChange {
     type Output = IndicatorValue;
+    type Input = IndicatorValue;
 
     #[inline(always)]
-    fn next(&mut self, input: IndicatorValue) -> IndicatorValue {
+    fn next(&mut self, input: Self::Input) -> Self::Output {
         let old_value = self.buffer.push(input);
 
         if old_value == 0.0.into() {
@@ -36,7 +37,7 @@ impl Indicator for RateOfChange {
     }
 
     #[inline(always)]
-    fn next_chunk(&mut self, input: &[IndicatorValue]) -> Self::Output {
+    fn next_chunk(&mut self, input: &[Self::Input]) -> Self::Output {
         let mut result = 0.0.into();
         for &value in input {
             result = self.next(value);

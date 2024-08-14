@@ -4,6 +4,7 @@ use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Neg};
 use std::str::FromStr;
 use std::cmp::Ordering;
+use std::iter::Sum;
 
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug)]
@@ -25,6 +26,12 @@ impl IndicatorValue {
     pub fn sqrt(&self) -> Self {
         Self(self.0.sqrt().unwrap_or_else(|| panic!("Failed to compute sqrt")))
     }
+
+    #[inline(always)]
+    pub fn abs(&self) -> Self {
+        Self(self.0.abs().unwrap_or_else(|| panic!("Failed to compute sqrt")))
+    }
+    
 }
 
 impl From<f64> for IndicatorValue {
@@ -88,6 +95,19 @@ impl PartialOrd for IndicatorValue {
     #[inline(always)]
     fn ge(&self, other: &Self) -> bool {
         self.0 >= other.0
+    }
+}
+
+impl Ord for IndicatorValue {
+    #[inline(always)]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl Sum for IndicatorValue {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(IndicatorValue::from(0.0), Add::add)
     }
 }
 
