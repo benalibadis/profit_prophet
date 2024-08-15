@@ -1,5 +1,4 @@
 use crate::indicators::Indicator;
-use crate::CircularBuffer;
 use crate::IndicatorValue;
 
 pub struct OnBalanceVolume {

@@ -2,29 +2,26 @@ use crate::indicators::Indicator;
 use crate::CircularBuffer;
 use crate::IndicatorValue;
 
-
-pub struct MedianAbsDev {
+pub struct ChandeMomentumOscillator {
     buffer: CircularBuffer,
-    period: usize,
 }
 
-impl MedianAbsDev {
+impl ChandeMomentumOscillator {
     #[inline(always)]
     pub fn new(period: usize) -> Self {
-        MedianAbsDev {
+        ChandeMomentumOscillator {
             buffer: CircularBuffer::new(period),
-            period,
         }
     }
 }
 
-impl Default for MedianAbsDev {
+impl Default for ChandeMomentumOscillator {
     fn default() -> Self {
-        MedianAbsDev::new(20) // Default period of 20
+        ChandeMomentumOscillator::new(14)
     }
 }
 
-impl Indicator for MedianAbsDev {
+impl Indicator for ChandeMomentumOscillator {
     type Input = IndicatorValue;
     type Output = IndicatorValue;
 
@@ -32,15 +29,21 @@ impl Indicator for MedianAbsDev {
     fn next(&mut self, input: Self::Input) -> Self::Output {
         self.buffer.push(input);
 
-        let mut values: Vec<_> = self.buffer.iter().collect();
-        values.sort_unstable();
+        let (mut sum_up, mut sum_down) = (IndicatorValue::from(0.0), IndicatorValue::from(0.0));
 
-        let median = values[values.len() / 2];
+        for x in self.buffer.iter() {
+            if x > 0.0.into() {
+                sum_up += x;
+            } else if x < 0.0.into() {
+                sum_down -= x;
+            }
+        }
 
-        let mut deviations: Vec<_> = self.buffer.iter().map(|value| (value - median).abs()).collect();
-        deviations.sort_unstable();
-
-        deviations[deviations.len() / 2]
+        if sum_up + sum_down == 0.0.into() {
+            0.0.into()
+        } else {
+            IndicatorValue::from(100.0) * (sum_up - sum_down) / (sum_up + sum_down)
+        }
     }
 
     #[inline(always)]

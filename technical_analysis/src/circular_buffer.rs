@@ -18,7 +18,22 @@ impl CircularBuffer {
             index: 0,
             full: false,
             capacity,
-            capacity_mask: capacity.saturating_sub(1), // Use saturating_sub for safety.
+            capacity_mask: capacity.saturating_sub(1),
+        }
+    }
+
+    #[cfg(not(feature = "unsafe"))]
+    #[inline(always)]
+    pub fn get(&self, index: usize) -> IndicatorValue {
+        self.buffer[index]
+
+    }
+
+    #[cfg(feature = "unsafe")]
+    #[inline(always)]
+    pub fn get(&self, index: usize) -> IndicatorValue {
+        unsafe {
+            *self.buffer.get_unchecked(index)
         }
     }
 
@@ -102,6 +117,8 @@ impl CircularBuffer {
     pub fn iter_reversed(&self) -> ReversedCircularBufferIterator {
         ReversedCircularBufferIterator::new(self)
     }
+
+    
 }
 
 pub struct ReversedCircularBufferIterator<'a> {

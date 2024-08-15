@@ -1,23 +1,22 @@
-use crate::indicators::Indicator;
+use crate::indicators::{Indicator, ExponentialMovingAverage};
 use crate::IndicatorValue;
-use crate::indicators::ExponentialMovingAverage;
 
-pub struct MovingAverageConvergenceDivergence {
+pub struct PercentagePriceOscillator {
     short_ema: ExponentialMovingAverage,
     long_ema: ExponentialMovingAverage,
     signal_ema: ExponentialMovingAverage,
 }
 
-pub struct MovingAverageConvergenceDivergenceOutput {
-    pub macd_value: IndicatorValue,
+pub struct PPOOutput {
+    pub ppo_value: IndicatorValue,
     pub signal_value: IndicatorValue,
     pub histogram_value: IndicatorValue,
 }
 
-impl MovingAverageConvergenceDivergence {
+impl PercentagePriceOscillator {
     #[inline(always)]
     pub fn new(short_period: usize, long_period: usize, signal_period: usize) -> Self {
-        MovingAverageConvergenceDivergence {
+        PercentagePriceOscillator {
             short_ema: ExponentialMovingAverage::new(short_period),
             long_ema: ExponentialMovingAverage::new(long_period),
             signal_ema: ExponentialMovingAverage::new(signal_period),
@@ -25,26 +24,29 @@ impl MovingAverageConvergenceDivergence {
     }
 }
 
-impl Default for MovingAverageConvergenceDivergence {
+impl Default for PercentagePriceOscillator {
     fn default() -> Self {
-        MovingAverageConvergenceDivergence::new(12, 26, 9)
+        PercentagePriceOscillator::new(12, 26, 9)
     }
 }
 
-impl Indicator for MovingAverageConvergenceDivergence {
+impl Indicator for PercentagePriceOscillator {
     type Input = IndicatorValue;
-    type Output = MovingAverageConvergenceDivergenceOutput;
+    type Output = PPOOutput;
 
     #[inline(always)]
     fn next(&mut self, input: Self::Input) -> Self::Output {
         let short_ema_value = self.short_ema.next(input);
         let long_ema_value = self.long_ema.next(input);
-        let macd_value = short_ema_value - long_ema_value;
-        let signal_value = self.signal_ema.next(macd_value);
-        let histogram_value = macd_value - signal_value;
+        
+        let ppo_value = ((short_ema_value - long_ema_value) / long_ema_value) * 100.0.into();
+        
+        let signal_value = self.signal_ema.next(ppo_value);
+        
+        let histogram_value = ppo_value - signal_value;
 
-        MovingAverageConvergenceDivergenceOutput {
-            macd_value,
+        PPOOutput {
+            ppo_value,
             signal_value,
             histogram_value,
         }
@@ -52,8 +54,8 @@ impl Indicator for MovingAverageConvergenceDivergence {
 
     #[inline(always)]
     fn next_chunk(&mut self, input: &[Self::Input]) -> Self::Output {
-        input.iter().fold(MovingAverageConvergenceDivergenceOutput {
-            macd_value: 0.0.into(),
+        input.iter().fold(PPOOutput {
+            ppo_value: 0.0.into(),
             signal_value: 0.0.into(),
             histogram_value: 0.0.into(),
         }, |_, &value| self.next(value))

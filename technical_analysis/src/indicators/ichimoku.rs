@@ -8,6 +8,8 @@ pub struct IchimokuClouds {
     tenkan_period: usize,
     kijun_period: usize,
     senkou_b_period: usize,
+    current_max_high: IndicatorValue,
+    current_min_low: IndicatorValue,
 }
 
 pub struct IchimokuCloudsOutput {
@@ -27,7 +29,40 @@ impl IchimokuClouds {
             tenkan_period,
             kijun_period,
             senkou_b_period,
+            current_max_high: IndicatorValue::from(0.0),
+            current_min_low: IndicatorValue::from(0.0),
         }
+    }
+
+    #[inline(always)]
+    fn update_max_min(&mut self, new_high: IndicatorValue, new_low: IndicatorValue) {
+        if new_high >= self.current_max_high || self.high_buffer.get(0) == self.current_max_high {
+            self.current_max_high = self.high_buffer.iter().max().unwrap();
+        }
+        if new_low <= self.current_min_low || self.low_buffer.get(0) == self.current_min_low {
+            self.current_min_low = self.low_buffer.iter().min().unwrap();
+        }
+    }
+
+    #[inline(always)]
+    fn calculate_tenkan_sen(&self) -> IndicatorValue {
+        let tenkan_high = self.high_buffer.iter().take(self.tenkan_period).max().unwrap();
+        let tenkan_low = self.low_buffer.iter().take(self.tenkan_period).min().unwrap();
+        (tenkan_high + tenkan_low) / 2.0.into()
+    }
+
+    #[inline(always)]
+    fn calculate_kijun_sen(&self) -> IndicatorValue {
+        let kijun_high = self.high_buffer.iter().take(self.kijun_period).max().unwrap();
+        let kijun_low = self.low_buffer.iter().take(self.kijun_period).min().unwrap();
+        (kijun_high + kijun_low) / 2.0.into()
+    }
+
+    #[inline(always)]
+    fn calculate_senkou_span_b(&self) -> IndicatorValue {
+        let senkou_b_high = self.high_buffer.iter().take(self.senkou_b_period).max().unwrap();
+        let senkou_b_low = self.low_buffer.iter().take(self.senkou_b_period).min().unwrap();
+        (senkou_b_high + senkou_b_low) / 2.0.into()
     }
 }
 
@@ -44,25 +79,21 @@ impl Indicator for IchimokuClouds {
     #[inline(always)]
     fn next(&mut self, input: Self::Input) -> Self::Output {
         let (high, low, close) = input;
-        self.high_buffer.push(high);
-        self.low_buffer.push(low);
+        let old_high = self.high_buffer.push(high);
+        let old_low = self.low_buffer.push(low);
 
-        // Tenkan-sen calculation
-        let tenkan_sen = (self.high_buffer.iter().take(self.tenkan_period).max().unwrap() 
-            + self.low_buffer.iter().take(self.tenkan_period).min().unwrap()) / 2.0.into();
+        if old_high == self.current_max_high || old_low == self.current_min_low {
+            self.update_max_min(high, low);
+        } else {
+            self.current_max_high = self.current_max_high.max(high);
+            self.current_min_low = self.current_min_low.min(low);
+        }
 
-        // Kijun-sen calculation
-        let kijun_sen = (self.high_buffer.iter().take(self.kijun_period).max().unwrap() 
-            + self.low_buffer.iter().take(self.kijun_period).min().unwrap()) / 2.0.into();
-
-        // Senkou Span A calculation (Plotted 26 periods ahead)
+        let tenkan_sen = self.calculate_tenkan_sen();
+        let kijun_sen = self.calculate_kijun_sen();
         let senkou_span_a = (tenkan_sen + kijun_sen) / 2.0.into();
+        let senkou_span_b = self.calculate_senkou_span_b();
 
-        // Senkou Span B calculation (Plotted 26 periods ahead)
-        let senkou_span_b = (self.high_buffer.iter().take(self.senkou_b_period).max().unwrap() 
-            + self.low_buffer.iter().take(self.senkou_b_period).min().unwrap()) / 2.0.into();
-
-        // Chikou Span (Lagging close price)
         let chikou_span = close;
 
         IchimokuCloudsOutput {
@@ -76,18 +107,23 @@ impl Indicator for IchimokuClouds {
 
     #[inline(always)]
     fn next_chunk(&mut self, input: &[Self::Input]) -> Self::Output {
-        input.iter().fold(IchimokuCloudsOutput {
-            tenkan_sen: 0.0.into(),
-            kijun_sen: 0.0.into(),
-            senkou_span_a: 0.0.into(),
-            senkou_span_b: 0.0.into(),
-            chikou_span: 0.0.into(),
-        }, |_, &value| self.next(value))
+        input.iter().fold(
+            IchimokuCloudsOutput {
+                tenkan_sen: 0.0.into(),
+                kijun_sen: 0.0.into(),
+                senkou_span_a: 0.0.into(),
+                senkou_span_b: 0.0.into(),
+                chikou_span: 0.0.into(),
+            },
+            |_, &value| self.next(value),
+        )
     }
 
     #[inline(always)]
     fn reset(&mut self) {
         self.high_buffer.clear();
         self.low_buffer.clear();
+        self.current_max_high = 0.0.into();
+        self.current_min_low = 0.0.into();
     }
 }

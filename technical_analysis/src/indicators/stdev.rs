@@ -7,6 +7,7 @@ pub struct StandardDeviation {
     buffer: CircularBuffer,
     sum: IndicatorValue,
     sum_of_squares: IndicatorValue,
+    inv_len: IndicatorValue,
 }
 
 impl StandardDeviation {
@@ -16,6 +17,7 @@ impl StandardDeviation {
             buffer: CircularBuffer::new(period),
             sum: 0.0.into(),
             sum_of_squares: 0.0.into(),
+            inv_len: IndicatorValue::from(1 / period),
         }
     }
 }
@@ -34,15 +36,14 @@ impl Indicator for StandardDeviation {
     fn next(&mut self, input: Self::Input) -> Self::Output {
         let old_value = self.buffer.push(input);
 
-        // Update sum and sum_of_squares with IndicatorValue
         self.sum -= old_value;
         self.sum_of_squares -= old_value * old_value;
 
         self.sum += input;
         self.sum_of_squares += input * input;
 
-        let mean = self.sum / self.buffer.len().into();
-        let variance = (self.sum_of_squares / self.buffer.len().into()) - (mean * mean);
+        let mean = self.sum * self.inv_len;
+        let variance = (self.sum_of_squares * self.inv_len) - (mean * mean);
 
         variance.sqrt()
     }
@@ -73,8 +74,8 @@ impl Indicator for StandardDeviation {
             self.sum += sum_vec.into();
             self.sum_of_squares += sum_of_squares_vec.into();
 
-            let mean = self.sum / self.buffer.len().into();
-            let variance = (self.sum_of_squares / self.buffer.len().into()) - (mean * mean);
+            let mean = self.sum * self.inv_len;
+            let variance = (self.sum_of_squares * self.inv_len) - (mean * mean);
 
             result = variance.sqrt();
         }

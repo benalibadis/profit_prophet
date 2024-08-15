@@ -1,5 +1,4 @@
 use crate::indicators::Indicator;
-use crate::CircularBuffer;
 use crate::IndicatorValue;
 
 pub struct VolumeWeightedAveragePrice {
@@ -18,8 +17,9 @@ impl VolumeWeightedAveragePrice {
 }
 
 impl Default for VolumeWeightedAveragePrice {
+    #[inline(always)]
     fn default() -> Self {
-        VolumeWeightedAveragePrice::new()
+        Self::new()
     }
 }
 
@@ -30,16 +30,37 @@ impl Indicator for VolumeWeightedAveragePrice {
     #[inline(always)]
     fn next(&mut self, input: Self::Input) -> Self::Output {
         let (high, low, close, volume) = input;
-        let typical_price = (high + low + close) / 3.0.into();
+
+        let one_third: IndicatorValue = (1.0 / 3.0).into();
+
+        let typical_price = (high + low + close) * one_third;
+
         self.cumulative_vp += typical_price * volume;
         self.cumulative_volume += volume;
 
-        self.cumulative_vp / self.cumulative_volume
+        if self.cumulative_volume > 0.0.into() {
+            self.cumulative_vp / self.cumulative_volume
+        } else {
+            0.0.into()
+        }
     }
 
     #[inline(always)]
     fn next_chunk(&mut self, input: &[Self::Input]) -> Self::Output {
-        input.iter().fold(0.0.into(), |_, &value| self.next(value))
+        let one_third: IndicatorValue = (1.0 / 3.0).into();
+
+        for &(high, low, close, volume) in input.iter() {
+            let typical_price = (high + low + close) * one_third;
+
+            self.cumulative_vp += typical_price * volume;
+            self.cumulative_volume += volume;
+        }
+
+        if self.cumulative_volume > 0.0.into() {
+            self.cumulative_vp / self.cumulative_volume
+        } else {
+            0.0.into()
+        }
     }
 
     #[inline(always)]

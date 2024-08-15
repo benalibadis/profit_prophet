@@ -38,12 +38,11 @@ impl BollingerBands {
 
     #[inline(always)]
     fn compute_bands(&self, sma_value: IndicatorValue, std_dev_value: IndicatorValue) -> BollingerBandsOutput {
-        let upper_band = sma_value + self.multiplier * std_dev_value;
-        let lower_band = sma_value - self.multiplier * std_dev_value;
-        
-        BollingerBandsOutput{
-            upper_band,
-            lower_band
+        let offset = self.multiplier * std_dev_value;
+
+        BollingerBandsOutput {
+            upper_band: sma_value + offset,
+            lower_band: sma_value - offset,
         }
     }
 }
@@ -61,9 +60,11 @@ impl Indicator for BollingerBands {
 
     #[inline(always)]
     fn next_chunk(&mut self, input: &[Self::Input]) -> Self::Output {
-        input.iter().fold(BollingerBandsOutput::default(), |_, &value| {
-            self.next(value)
-        })
+        let mut last_output = BollingerBandsOutput::default();
+        for &value in input {
+            last_output = self.next(value);
+        }
+        last_output
     }
 
     #[inline(always)]

@@ -5,6 +5,7 @@ use crate::IndicatorValue;
 pub struct ChaikinMoneyFlow {
     buffer: CircularBuffer,
     period: usize,
+    running_sum: IndicatorValue,
 }
 
 impl ChaikinMoneyFlow {
@@ -13,13 +14,14 @@ impl ChaikinMoneyFlow {
         ChaikinMoneyFlow {
             buffer: CircularBuffer::new(period),
             period,
+            running_sum: 0.0.into(),
         }
     }
 }
 
 impl Default for ChaikinMoneyFlow {
     fn default() -> Self {
-        ChaikinMoneyFlow::new(20) // Default period of 20
+        ChaikinMoneyFlow::new(20)
     }
 }
 
@@ -30,11 +32,22 @@ impl Indicator for ChaikinMoneyFlow {
     #[inline(always)]
     fn next(&mut self, input: Self::Input) -> Self::Output {
         let (high, low, close, volume) = input;
+
+        if high == low {
+            return 0.0.into();
+        }
+
         let mfv = ((close - low) - (high - close)) / (high - low) * volume;
 
-        self.buffer.push(mfv);
+        if self.buffer.is_full() {
+            let oldest_value = self.buffer.push(mfv);
+            self.running_sum += mfv - oldest_value;
+        } else {
+            self.buffer.push(mfv);
+            self.running_sum += mfv;
+        }
 
-        self.buffer.iter().sum::<IndicatorValue>() / self.period.into()
+        self.running_sum / self.period.into()
     }
 
     #[inline(always)]
@@ -45,5 +58,6 @@ impl Indicator for ChaikinMoneyFlow {
     #[inline(always)]
     fn reset(&mut self) {
         self.buffer.clear();
+        self.running_sum = 0.0.into();
     }
 }

@@ -1,9 +1,7 @@
 use crate::indicators::Indicator;
-use crate::CircularBuffer;
 use crate::IndicatorValue;
 
 pub struct ExponentialMovingAverage {
-    period: usize,
     multiplier: IndicatorValue,
     current_ema: Option<IndicatorValue>,
 }
@@ -13,7 +11,6 @@ impl ExponentialMovingAverage {
     pub fn new(period: usize) -> Self {
         let multiplier = IndicatorValue::from(2.0) / IndicatorValue::from(period + 1);
         ExponentialMovingAverage {
-            period,
             multiplier,
             current_ema: None,
         }
@@ -22,7 +19,7 @@ impl ExponentialMovingAverage {
 
 impl Default for ExponentialMovingAverage {
     fn default() -> Self {
-        ExponentialMovingAverage::new(14) // Default period of 14
+        ExponentialMovingAverage::new(14)
     }
 }
 

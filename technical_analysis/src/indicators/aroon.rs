@@ -6,6 +6,7 @@ pub struct Aroon {
     high_buffer: CircularBuffer,
     low_buffer: CircularBuffer,
     period: usize,
+    period_reciprocal: f64,
 }
 
 pub struct AroonOutput {
@@ -20,13 +21,47 @@ impl Aroon {
             high_buffer: CircularBuffer::new(period),
             low_buffer: CircularBuffer::new(period),
             period,
+            period_reciprocal: 1.0 / period as f64
+        }
+    }
+
+    #[inline(always)]
+    fn calculate_aroon(&self) -> AroonOutput {
+        let period = self.period as f64;
+
+        let mut highest_index = 0;
+        let mut lowest_index = 0;
+
+        let mut highest_high = self.high_buffer.get(0);
+        let mut lowest_low = self.low_buffer.get(0);
+
+        for i in 0..self.period {
+            let high = self.high_buffer.get(i);
+            let low = self.low_buffer.get(i);
+
+            if high > highest_high {
+                highest_high = high;
+                highest_index = i;
+            }
+            if low < lowest_low {
+                lowest_low = low;
+                lowest_index = i;
+            }
+        }
+
+        let aroon_up = ((period - highest_index as f64) * self.period_reciprocal * 100.0).into();
+        let aroon_down = ((period - lowest_index as f64) * self.period_reciprocal * 100.0).into();
+
+        AroonOutput {
+            aroon_up,
+            aroon_down,
         }
     }
 }
 
 impl Default for Aroon {
     fn default() -> Self {
-        Aroon::new(14) // Default period of 14
+        Aroon::new(14)
     }
 }
 
@@ -40,16 +75,7 @@ impl Indicator for Aroon {
         self.high_buffer.push(high);
         self.low_buffer.push(low);
 
-        let highest_high = self.high_buffer.iter().max().unwrap();
-        let lowest_low = self.low_buffer.iter().min().unwrap();
-
-        let aroon_up = (highest_high / self.period.into()) * 100.0.into();
-        let aroon_down = (lowest_low / self.period.into()) * 100.0.into();
-
-        AroonOutput {
-            aroon_up,
-            aroon_down,
-        }
+        self.calculate_aroon()
     }
 
     #[inline(always)]
