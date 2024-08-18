@@ -1,18 +1,10 @@
-use std::collections::HashMap;
+use crate::connector::{DataConnector, DataConnectorError};
+use crate::postgresql::error::PostgresClientError;
+use crate::{Message, Protocol};
+use async_trait::async_trait;
 use std::sync::Arc;
 use tokio_postgres::{Client, NoTls};
-use serde::{Deserialize, Serialize};
-use crate::connector::{DataConnector, DataConnectorError};
-use crate::{Message, Protocol};
-use crate::postgresql::error::PostgresClientError;
-use async_trait::async_trait;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PostgresData {
-    pub table_name: String,
-    pub schema: String,
-    pub rows: HashMap<String, serde_json::Value>,
-}
+use crate::postgresql::PostgresData;
 
 #[derive(Clone)]
 pub struct PostgresClient {
