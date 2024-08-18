@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::connector::{DataConnector, DataConnectorError};
 use crate::{Message, Protocol};
 use crate::http::{HttpClient, HttpRequest};
-use crate::influxdb::protocol::InfluxDbDataPoint;
+use crate::data_protocol::InfluxDbDataPoint;
 use async_trait::async_trait;
 use crate::influxdb::error::InfluxDbClientError;
 
